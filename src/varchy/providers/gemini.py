@@ -57,3 +57,4 @@ class GeminiProvider(BaseAIProvider):
             raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
             parsed_json = json.loads(raw_text)
             return response_model.model_validate(parsed_json)
+

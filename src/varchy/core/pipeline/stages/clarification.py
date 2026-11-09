@@ -40,3 +40,4 @@ class ClarificationStage(BaseStage[list[Assumption]]):
 
         ctx.set_data("assumptions", assumptions)
         return assumptions
+

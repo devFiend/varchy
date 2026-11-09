@@ -1,17 +1,19 @@
 """Unified Varchy Core Engine coordinator."""
 
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 from varchy.core.compiler.compiler import DocCompiler
 from varchy.core.models.blueprint import Blueprint
-from varchy.core.models.common import GenerationMode, ProjectCategory
-from varchy.core.models.project import ProjectMetadata
+from varchy.core.models.common import GenerationMode, ProjectCategory, StageID
+from varchy.core.models.project import ProjectBrief, ProjectMetadata
 from varchy.core.models.validation import ReadinessReport
+from varchy.core.pipeline.context import StageContext
+from varchy.core.pipeline.orchestrator import PipelineOrchestrator
+from varchy.core.pipeline.stages.discovery import DiscoveryStage
 from varchy.core.storage.workspace import WorkspaceManager
 from varchy.core.validator.engine import ValidationEngine
 from varchy.providers.manager import ProviderManager
-from varchy.providers.mock import MockAIProvider
 
 
 class VarchyEngine:
@@ -46,14 +48,35 @@ class VarchyEngine:
         self.workspace.initialize(metadata)
         return metadata
 
+    async def analyze_idea(
+        self,
+        idea: str,
+        category: ProjectCategory = ProjectCategory.DEV_TOOL,
+        provider_name: Optional[str] = None,
+    ) -> ProjectBrief:
+        """Analyze raw idea and return structured ProjectBrief."""
+        metadata = ProjectMetadata(
+            name="AnalysisProject",
+            slug="analysis",
+            description=idea,
+            category=category,
+        )
+        provider = self.provider_mgr.get_provider(provider_name)
+        ctx = StageContext(workspace=self.workspace, provider=provider, metadata=metadata)
+        stage = DiscoveryStage()
+        return await stage.execute(ctx)
+
     async def generate_blueprint(
         self,
         idea: str,
         category: ProjectCategory = ProjectCategory.DEV_TOOL,
         provider_name: Optional[str] = None,
+        mode: GenerationMode = GenerationMode.AUTONOMOUS,
+        resume: bool = True,
+        progress_callback: Optional[Callable[[StageID, str], None]] = None,
     ) -> Blueprint:
         """
-        Execute generation pipeline and persist blueprint.
+        Execute full 10-stage generation pipeline via DAG orchestrator and persist blueprint.
         Produces full structured blueprint and compiles docs.
         """
         # Ensure project workspace is initialized
@@ -62,23 +85,23 @@ class VarchyEngine:
                 name="ArchitectedProject",
                 description=idea,
                 category=category,
+                mode=mode,
             )
 
+        metadata = self.workspace.load_metadata()
         provider = self.provider_mgr.get_provider(provider_name)
-        # Using mock or live provider to get structured model
-        if isinstance(provider, MockAIProvider):
-            blueprint = provider.generate_mock_blueprint(
-                name=self.workspace.load_metadata().name,
-                idea=idea,
-            )
-        else:
-            blueprint = await provider.complete_structured(
-                prompt=f"Generate complete software blueprint for idea: {idea}",
-                response_model=Blueprint,
-            )
 
-        # Save structured source of truth
-        self.workspace.save_blueprint(blueprint)
+        orchestrator = PipelineOrchestrator(
+            workspace=self.workspace,
+            provider=provider,
+            metadata=metadata,
+            mode=mode,
+        )
+
+        blueprint = await orchestrator.run(
+            resume=resume,
+            progress_callback=progress_callback,
+        )
 
         # Compile documentation and agent instructions
         self.compiler.compile_all(blueprint)
@@ -94,4 +117,3 @@ class VarchyEngine:
         """Compile and re-export markdown and agent instruction files."""
         blueprint = self.workspace.load_blueprint()
         return self.compiler.compile_all(blueprint)
-

@@ -10,7 +10,8 @@ from rich.table import Table
 
 from varchy import __version__
 from varchy.core.engine import VarchyEngine
-from varchy.core.models.common import GenerationMode, ProjectCategory, Severity
+from varchy.core.models.common import GenerationMode, ProjectCategory, StageID
+from varchy.core.storage.keystore import KeyStore
 
 app = typer.Typer(
     name="varchy",
@@ -18,7 +19,9 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 mcp_app = typer.Typer(name="mcp", help="Model Context Protocol (MCP) server commands.")
+config_app = typer.Typer(name="config", help="Manage Varchy settings and secure API credentials.")
 app.add_typer(mcp_app, name="mcp")
+app.add_typer(config_app, name="config")
 
 console = Console()
 
@@ -62,22 +65,56 @@ def init(
 
 
 @app.command()
+def analyze(
+    idea: str = typer.Option(..., "--idea", "-i", help="Raw software idea to analyze"),
+    category: ProjectCategory = typer.Option(ProjectCategory.DEV_TOOL, "--category", "-c", help="Category"),
+    provider: Optional[str] = typer.Option(None, "--provider", "-p", help="AI provider"),
+):
+    """Analyze a project idea and produce a structured brief before generating architecture."""
+    engine = VarchyEngine()
+    with console.status("[bold blue]Analyzing concept, risks, and problem space...[/bold blue]"):
+        brief = asyncio.run(engine.analyze_idea(idea=idea, category=category, provider_name=provider))
+
+    table = Table(title="🏛️ Varchy Idea Analysis & Project Brief")
+    table.add_column("Property", style="cyan", width=22)
+    table.add_column("Assessment", style="white")
+
+    table.add_row("Core Problem", brief.core_problem)
+    table.add_row("Proposed Solution", brief.proposed_solution)
+    table.add_row("Target Audience", ", ".join(brief.target_audience))
+    table.add_row("Technical Complexity", brief.technical_complexity.upper())
+    table.add_row("Identified Risks", "\n".join(f"• {r}" for r in brief.identified_risks))
+    table.add_row("Key Features", "\n".join(f"• {f}" for f in brief.key_features))
+
+    console.print(table)
+
+
+@app.command()
 def generate(
     idea: str = typer.Option(..., "--idea", "-i", help="One-sentence description of the project idea"),
     category: ProjectCategory = typer.Option(ProjectCategory.SAAS, "--category", "-c", help="Category"),
     provider: Optional[str] = typer.Option(None, "--provider", "-p", help="AI provider (openai, gemini, grok, ollama, mock)"),
+    mode: GenerationMode = typer.Option(GenerationMode.AUTONOMOUS, "--mode", "-m", help="interactive or autonomous"),
+    no_resume: bool = typer.Option(False, "--force", help="Do not restore cached checkpoints; regenerate all stages"),
 ):
     """Transform a software idea into a complete, validated architectural blueprint."""
     engine = VarchyEngine()
 
-    with console.status("[bold blue]Synthesizing software architecture blueprint...[/bold blue]"):
-        blueprint = asyncio.run(
-            engine.generate_blueprint(
-                idea=idea,
-                category=category,
-                provider_name=provider,
-            )
+    def progress_callback(stage_id: StageID, message: str):
+        console.print(f"  [cyan]▸ [{stage_id.value.upper()}][/cyan] {message}")
+
+    console.print(f"[bold cyan]Starting Varchy Architecture Pipeline for:[/bold cyan] {idea}\n")
+
+    blueprint = asyncio.run(
+        engine.generate_blueprint(
+            idea=idea,
+            category=category,
+            provider_name=provider,
+            mode=mode,
+            resume=not no_resume,
+            progress_callback=progress_callback,
         )
+    )
 
     console.print(
         Panel(
@@ -85,10 +122,11 @@ def generate(
             f"- [cyan]Project:[/cyan] {blueprint.metadata.name}\n"
             f"- [cyan]Requirements:[/cyan] {len(blueprint.product.requirements)} defined\n"
             f"- [cyan]Screens:[/cyan] {len(blueprint.design.screens)} specified\n"
+            f"- [cyan]Entities & Endpoints:[/cyan] {len(blueprint.data_api.entities)} tables, {len(blueprint.data_api.endpoints)} APIs\n"
             f"- [cyan]Tasks:[/cyan] {len(blueprint.planning.tasks)} planned across {len(blueprint.planning.phases)} phases\n"
             f"- [cyan]Tests:[/cyan] {len(blueprint.testing.test_cases)} test cases\n\n"
             f"[bold]Output compiled to:[/bold]\n"
-            f"  📁 docs/\n"
+            f"  📁 docs/ (gitignored)\n"
             f"  📄 AGENTS.md\n"
             f"  📄 CLAUDE.md\n"
             f"  📄 GEMINI.md",
@@ -143,6 +181,40 @@ def validate():
 
 
 @app.command()
+def status():
+    """Display current project status, completed stages, and blueprint summary."""
+    engine = VarchyEngine()
+    if not engine.workspace.is_initialized():
+        console.print("[yellow]No Varchy project found in current directory.[/yellow]")
+        raise typer.Exit(code=0)
+
+    metadata = engine.workspace.load_metadata()
+    console.print(
+        Panel(
+            f"[bold cyan]Project:[/bold cyan] {metadata.name} ([green]{metadata.category.value}[/green])\n"
+            f"[bold cyan]Description:[/bold cyan] {metadata.description}\n"
+            f"[bold cyan]Mode:[/bold cyan] {metadata.generation_mode.value}\n"
+            f"[bold cyan]Workspace:[/bold cyan] {engine.workspace.varchy_dir}",
+            title="🏛️ Varchy Project Status",
+            border_style="cyan",
+        )
+    )
+
+    try:
+        blueprint = engine.workspace.load_blueprint()
+        report = engine.validator.evaluate(blueprint)
+        console.print(
+            f"✅ [bold green]Active Blueprint Loaded[/bold green] (Readiness: [bold]{report.total_score}/100[/bold])\n"
+            f"   • Requirements: {len(blueprint.product.requirements)}\n"
+            f"   • Screens: {len(blueprint.design.screens)}\n"
+            f"   • Implementation Tasks: {len(blueprint.planning.tasks)}\n"
+            f"   • Test Cases: {len(blueprint.testing.test_cases)}"
+        )
+    except FileNotFoundError:
+        console.print("[yellow]⚠️ No blueprint generated yet. Run `varchy generate`.[/yellow]")
+
+
+@app.command()
 def export():
     """Export or re-compile agent instructions and markdown documentation."""
     engine = VarchyEngine()
@@ -158,22 +230,40 @@ def export():
 def doctor():
     """Diagnose local environment, providers, keyring, and file permissions."""
     console.print(Panel("[bold]Varchy System & Environment Diagnosis[/bold]", style="cyan"))
-    
-    # 1. Python & Workspace
+
     cwd = Path.cwd()
     engine = VarchyEngine(cwd)
     console.print(f"✅ [bold]Working Directory:[/bold] {cwd}")
     console.print(f"✅ [bold]Workspace Initialized:[/bold] {engine.workspace.is_initialized()}")
-    
-    # 2. Keyring check
+
     try:
         import keyring
         console.print("✅ [bold]Keyring Integration:[/bold] Available")
     except ImportError:
         console.print("⚠️ [bold]Keyring Integration:[/bold] Not installed (falling back to environment variables)")
-        
+
+    # Check configured API keys
+    for prov in ["openai", "gemini", "grok"]:
+        key = KeyStore.get_api_key(prov)
+        status_str = "[green]Configured[/green]" if key else "[dim]Not set (BYOK)[/dim]"
+        console.print(f"  • {prov.title()} Key: {status_str}")
+
     console.print("✅ [bold]Deterministic Validation Engine:[/bold] Ready")
+    console.print("✅ [bold]Multi-Stage DAG Orchestrator:[/bold] Ready")
     console.print("✅ [bold]All core subsystems operational.[/bold]")
+
+
+@config_app.command("set-key")
+def config_set_key(
+    provider: str = typer.Argument(..., help="Provider name: openai, gemini, grok"),
+    key: str = typer.Argument(..., help="API key string"),
+):
+    """Store an AI provider API key securely into OS Keyring."""
+    success = KeyStore.set_api_key(provider, key)
+    if success:
+        console.print(f"[bold green]Successfully stored {provider} API key securely in OS Keychain.[/bold green]")
+    else:
+        console.print(f"[yellow]Stored {provider} key. (If OS Keyring unavailable, use VARCHY_{provider.upper()}_API_KEY env).[/yellow]")
 
 
 @mcp_app.command("run")
@@ -186,4 +276,3 @@ def run_mcp_server():
 
 if __name__ == "__main__":
     app()
-

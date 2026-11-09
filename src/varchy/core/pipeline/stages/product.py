@@ -78,3 +78,4 @@ class ProductStage(BaseStage[ProductSpec]):
 
         ctx.set_data("product", spec)
         return spec
+

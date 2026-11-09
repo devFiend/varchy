@@ -59,3 +59,4 @@ class OllamaProvider(BaseAIProvider):
             raise ConnectionError(
                 f"Could not connect to Ollama at {self.base_url}. Ensure Ollama is running (`ollama serve`)."
             )
+
