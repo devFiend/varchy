@@ -4,6 +4,7 @@ import asyncio
 from pathlib import Path
 from typing import Optional
 import typer
+from rich import box
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -32,6 +33,25 @@ app.add_typer(templates_app, name="templates")
 app.add_typer(task_app, name="task")
 
 console = Console()
+
+STAGE_META = {
+    StageID.DISCOVERY: ("🔍", "Discovery", "cyan"),
+    StageID.CLARIFICATION: ("📋", "Clarification", "magenta"),
+    StageID.PRODUCT: ("📝", "Product (PRD)", "blue"),
+    StageID.UX: ("🎨", "UI/UX Design", "purple"),
+    StageID.ARCHITECTURE: ("🏗️ ", "Architecture", "green"),
+    StageID.DATA_API: ("🗄️ ", "Data & APIs", "yellow"),
+    StageID.PLANNING: ("⚡", "Task Graph", "bright_cyan"),
+    StageID.QA: ("🧪", "QA & Testing", "bright_green"),
+}
+
+
+def make_meter(score: float, max_score: float, width: int = 10) -> str:
+    ratio = score / max_score if max_score > 0 else 0
+    filled = int(round(ratio * width))
+    bar = "█" * filled + "░" * (width - filled)
+    return f"[green]{bar}[/green]" if ratio >= 0.8 else f"[yellow]{bar}[/yellow]"
+
 
 
 @app.command()
@@ -105,7 +125,8 @@ def analyze(
 
 @app.command()
 def generate(
-    idea: str = typer.Option(..., "--idea", "-i", help="One-sentence description of the project idea"),
+    extra_words: Optional[list[str]] = typer.Argument(None, help="Additional idea words if quotes were split by shell"),
+    idea: Optional[str] = typer.Option(None, "--idea", "-i", help="One-sentence description of the project idea"),
     category: ProjectCategory = typer.Option(ProjectCategory.SAAS, "--category", "-c", help="Category"),
     provider: Optional[str] = typer.Option(None, "--provider", "-p", help="AI provider (openai, gemini, grok, groq, ollama, mock)"),
     mode: GenerationMode = typer.Option(GenerationMode.AUTONOMOUS, "--mode", "-m", help="interactive or autonomous"),
@@ -113,6 +134,19 @@ def generate(
     template: Optional[str] = typer.Option(None, "--template", "-t", help="Template: saas, local_first, api_backend, dev_tool, mobile_app"),
 ):
     """Transform a software idea into a complete, validated architectural blueprint."""
+    # Handle smart quotes / shell split
+    words = []
+    if idea:
+        words.append(idea.strip("“\"”'"))
+    if extra_words:
+        words.extend([w.strip("“\"”'") for w in extra_words])
+
+    if not words:
+        console.print("[red]Error: Please provide a project idea with --idea \"...\" or directly as an argument.[/red]")
+        raise typer.Exit(code=1)
+
+    full_idea = " ".join(words)
+
     engine = VarchyEngine()
 
     if template:
@@ -120,14 +154,42 @@ def generate(
         if arch_tmpl:
             category = arch_tmpl.category
 
-    def progress_callback(stage_id: StageID, message: str):
-        console.print(f"  [cyan]▸ [{stage_id.value.upper()}][/cyan] {message}")
+    # Pre-Flight Card
+    provider_label = (provider or "auto-detect").upper()
+    template_label = f"{template or category.value} ({category.value})"
+    policy_label = "Fresh Generation (--force)" if no_resume else "Resumable Checkpoints"
 
-    console.print(f"[bold cyan]Starting Varchy Architecture Pipeline for:[/bold cyan] {idea}\n")
+    preflight = Table.grid(padding=(0, 2))
+    preflight.add_column(style="dim cyan", width=14)
+    preflight.add_column(style="bold white")
+
+    preflight.add_row("Target Idea", f"\"{full_idea}\"")
+    preflight.add_row("Archetype", template_label)
+    preflight.add_row("AI Engine", provider_label)
+    preflight.add_row("Execution", f"{mode.value.title()} • {policy_label}")
+
+    console.print(
+        Panel(
+            preflight,
+            title="🏛️  [bold cyan]Varchy Architecture Pipeline[/bold cyan]",
+            box=box.ROUNDED,
+            border_style="cyan",
+            padding=(0, 1),
+        )
+    )
+    console.print(f"[dim]Starting Varchy Architecture Pipeline for:[/dim] {full_idea}\n")
+
+    def progress_callback(stage_id: StageID, message: str):
+        meta = STAGE_META.get(stage_id, ("▸", stage_id.value.upper(), "cyan"))
+        icon, label, color = meta
+        if "Restoring cached checkpoint" in message:
+            console.print(f"  [cyan]▸ [{stage_id.value.upper()}][/cyan] [dim]Restoring cached checkpoint for {stage_id.value}...[/dim]")
+        else:
+            console.print(f"  {icon} [bold {color}][{stage_id.value.upper()}][/bold {color}] [white]{message}[/white]")
 
     blueprint = asyncio.run(
         engine.generate_blueprint(
-            idea=idea,
+            idea=full_idea,
             category=category,
             provider_name=provider,
             mode=mode,
@@ -136,24 +198,39 @@ def generate(
         )
     )
 
+    req_count = len(blueprint.product.requirements)
+    screen_count = len(blueprint.design.screens)
+    task_count = len(blueprint.planning.tasks)
+    phase_count = len(blueprint.planning.phases)
+    table_count = len(blueprint.data_api.entities)
+    api_count = len(blueprint.data_api.endpoints)
+    test_count = len(blueprint.testing.test_cases)
+
+    summary_text = (
+        f"[bold green]Architectural Blueprint Generated Successfully![/bold green]\n\n"
+        f"  • [cyan]Project:[/cyan] {blueprint.metadata.name}\n"
+        f"  • [cyan]Requirements:[/cyan] {req_count} defined [dim][REQ-001 → REQ-{req_count:03d}][/dim]\n"
+        f"  • [cyan]Screens:[/cyan] {screen_count} specified [dim][SCREEN-001 → SCREEN-{screen_count:03d}][/dim]\n"
+        f"  • [cyan]Entities & Endpoints:[/cyan] {table_count} tables, {api_count} APIs\n"
+        f"  • [cyan]Tasks:[/cyan] {task_count} planned across {phase_count} phases [dim][TASK-001 → TASK-{task_count:03d}][/dim]\n"
+        f"  • [cyan]Tests:[/cyan] {test_count} test cases\n\n"
+        f"[bold white]Output compiled to:[/bold white]\n"
+        f"  📁 docs/ (gitignored)\n"
+        f"  📄 AGENTS.md\n"
+        f"  📄 CLAUDE.md\n"
+        f"  📄 GEMINI.md\n"
+        f"  📄 .cursorrules\n"
+        f"  📄 .github/copilot-instructions.md\n\n"
+        f"[bold yellow]👉 Next Implementation Step:[/bold yellow]\n"
+        f"  Run [bold cyan]varchy task next[/bold cyan] to hand the first task to your coding agent!"
+    )
+
     console.print(
         Panel(
-            f"[bold green]Architectural Blueprint Generated Successfully![/bold green]\n"
-            f"- [cyan]Project:[/cyan] {blueprint.metadata.name}\n"
-            f"- [cyan]Requirements:[/cyan] {len(blueprint.product.requirements)} defined\n"
-            f"- [cyan]Screens:[/cyan] {len(blueprint.design.screens)} specified\n"
-            f"- [cyan]Entities & Endpoints:[/cyan] {len(blueprint.data_api.entities)} tables, {len(blueprint.data_api.endpoints)} APIs\n"
-            f"- [cyan]Tasks:[/cyan] {len(blueprint.planning.tasks)} planned across {len(blueprint.planning.phases)} phases\n"
-            f"- [cyan]Tests:[/cyan] {len(blueprint.testing.test_cases)} test cases\n\n"
-            f"[bold]Output compiled to:[/bold]\n"
-            f"  📁 docs/ (gitignored)\n"
-            f"  📄 AGENTS.md\n"
-            f"  📄 CLAUDE.md\n"
-            f"  📄 GEMINI.md\n"
-            f"  📄 .cursorrules\n"
-            f"  📄 .github/copilot-instructions.md",
+            summary_text,
             title="🏛️ Varchy Architect",
-            border_style="cyan",
+            box=box.ROUNDED,
+            border_style="green",
         )
     )
 
@@ -172,24 +249,36 @@ def validate():
         console.print("[red]No blueprint found to validate. Run `varchy generate` first.[/red]")
         raise typer.Exit(code=1)
 
-    table = Table(title="🏛️ Blueprint Readiness Assessment (100-Point Deterministic Score)")
-    table.add_column("Category", style="cyan")
-    table.add_column("Max", justify="right")
-    table.add_column("Score", justify="right", style="bold")
-    table.add_column("Status", justify="center")
+    table = Table(
+        title="🏛️ Blueprint Readiness Assessment (100-Point Deterministic Score)",
+        box=box.ROUNDED,
+        title_style="bold cyan",
+    )
+    table.add_column("Category", style="cyan bold", width=26)
+    table.add_column("Readiness Meter", justify="center", width=14)
+    table.add_column("Score", justify="right", style="bold white", width=12)
+    table.add_column("Status", justify="center", width=10)
 
     for cat in report.category_scores:
         status = "[green]PASS[/green]" if cat.awarded_points >= (cat.max_points * 0.8) else "[yellow]ATTN[/yellow]"
-        table.add_row(cat.category.replace("_", " ").title(), str(cat.max_points), f"{cat.awarded_points:.1f}", status)
+        meter = make_meter(cat.awarded_points, cat.max_points)
+        table.add_row(
+            cat.category.replace("_", " ").title(),
+            meter,
+            f"{cat.awarded_points:.1f} / {cat.max_points}",
+            status,
+        )
 
     console.print(table)
 
     summary_color = "green" if report.passed else "red"
     status_str = "READY FOR IMPLEMENTATION" if report.passed else "BLOCKED / REQUIRES ATTENTION"
     console.print(
-        Panel.fit(
+        Panel(
             f"[{summary_color}]Total Readiness Score: [bold]{report.total_score} / 100[/bold] — {status_str}[/{summary_color}]\n"
             f"Critical Blockers: {len(report.critical_blockers)} | Warnings: {len(report.warnings)} | Recs: {len(report.recommendations)}",
+            title="🏛️ Score Verdict",
+            box=box.ROUNDED,
             border_style=summary_color,
         )
     )
@@ -347,6 +436,7 @@ def status():
             f"[bold cyan]Mode:[/bold cyan] {metadata.generation_mode.value}\n"
             f"[bold cyan]Workspace:[/bold cyan] {engine.workspace.varchy_dir}",
             title="🏛️ Varchy Project Status",
+            box=box.ROUNDED,
             border_style="cyan",
         )
     )
@@ -368,8 +458,12 @@ def status():
 @app.command()
 def providers():
     """List supported AI providers, key requirements, and environment variables."""
-    table = Table(title="🏛️ Supported AI Providers & BYOK Status")
-    table.add_column("Provider ID", style="cyan", width=14)
+    table = Table(
+        title="🏛️ Supported AI Providers & BYOK Status",
+        box=box.ROUNDED,
+        title_style="bold cyan",
+    )
+    table.add_column("Provider ID", style="cyan bold", width=14)
     table.add_column("Provider Name", style="bold white", width=24)
     table.add_column("Status / Config", style="green", width=22)
     table.add_column("Environment Variable", style="dim")
@@ -389,8 +483,12 @@ def providers():
 @app.command()
 def models(provider: Optional[str] = typer.Option(None, "--provider", "-p", help="Filter by provider: openai, gemini, grok, groq, ollama")):
     """List available and recommended models across supported providers."""
-    table = Table(title="🏛️ AI Models per Provider")
-    table.add_column("Provider", style="cyan", width=16)
+    table = Table(
+        title="🏛️ AI Models per Provider",
+        box=box.ROUNDED,
+        title_style="bold cyan",
+    )
+    table.add_column("Provider", style="cyan bold", width=16)
     table.add_column("Recommended Model", style="bold green", width=22)
     table.add_column("Available Models", style="white")
 
@@ -431,7 +529,7 @@ def doctor():
     except ImportError:
         console.print("⚠️ [bold]Keyring Integration:[/bold] Not installed (falling back to environment variables)")
 
-    for prov in ["openai", "gemini", "grok"]:
+    for prov in ["openai", "gemini", "grok", "groq"]:
         key = KeyStore.get_api_key(prov)
         status_str = "[green]Configured[/green]" if key else "[dim]Not set (BYOK)[/dim]"
         console.print(f"  • {prov.title()} Key: {status_str}")
@@ -451,8 +549,12 @@ def task_list():
         console.print("[red]No active blueprint found. Run `varchy generate` first.[/red]")
         raise typer.Exit(code=1)
 
-    table = Table(title="🏛️ Development Tasks & Dependencies")
-    table.add_column("Task ID", style="cyan", width=12)
+    table = Table(
+        title="🏛️ Development Tasks & Dependencies",
+        box=box.ROUNDED,
+        title_style="bold cyan",
+    )
+    table.add_column("Task ID", style="cyan bold", width=12)
     table.add_column("Phase", style="dim", width=10)
     table.add_column("Title", style="bold white", width=34)
     table.add_column("Prerequisites", style="yellow", width=18)
@@ -488,16 +590,19 @@ def task_next():
     criteria_lines = "\n".join(f"  • {c}" for c in next_task.completion_criteria)
     req_lines = "\n".join(f"  • [{r.id}] {r.title}: {r.description}" for r in associated_reqs)
 
+    prio_color = "red" if next_task.priority.value == "critical" else "yellow" if next_task.priority.value == "high" else "green"
+
     console.print(
         Panel(
             f"[bold green]Next Actionable Implementation Task: [{next_task.id}][/bold green]\n"
-            f"[bold]Title:[/bold] {next_task.title}\n"
-            f"[bold]Phase:[/bold] {next_task.phase_id} | [bold]Priority:[/bold] {next_task.priority.value}\n"
-            f"[bold]Description:[/bold] {next_task.description}\n\n"
+            f"[bold white]Title:[/bold white] {next_task.title}\n"
+            f"[bold white]Phase:[/bold white] {next_task.phase_id} | [bold white]Priority:[/bold white] [{prio_color}]{next_task.priority.value.upper()}[/{prio_color}]\n"
+            f"[bold white]Description:[/bold white] {next_task.description}\n\n"
             f"[bold cyan]Associated Requirements:[/bold cyan]\n{req_lines or '  • None specified'}\n\n"
             f"[bold yellow]Completion Criteria:[/bold yellow]\n{criteria_lines or '  • All tests pass'}\n\n"
-            f"[dim]Hand off this prompt to Cursor, Claude, or Codex to implement this task![/dim]",
+            f"[dim italic]Hand off this prompt to Cursor, Claude, or Codex to implement this task![/dim italic]",
             title="🏛️ Varchy Task Handoff",
+            box=box.ROUNDED,
             border_style="green",
         )
     )
@@ -509,9 +614,13 @@ def list_templates(ctx: typer.Context):
     if ctx.invoked_subcommand is not None:
         return
 
-    table = Table(title="🏛️ Varchy Architectural Templates & Archetypes")
-    table.add_column("Template ID", style="cyan", width=14)
-    table.add_column("Name", style="bold", width=26)
+    table = Table(
+        title="🏛️ Varchy Architectural Templates & Archetypes",
+        box=box.ROUNDED,
+        title_style="bold cyan",
+    )
+    table.add_column("Template ID", style="cyan bold", width=14)
+    table.add_column("Name", style="bold white", width=26)
     table.add_column("Category", style="green", width=16)
     table.add_column("Description", style="white")
 
