@@ -1,0 +1,29 @@
+name: Bug report
+description: Create a report to help us improve Varchy
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for reporting a bug! Please fill out the sections below.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the bug encountered.
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command Executed
+      description: What CLI command or MCP tool did you run?
+      placeholder: varchy generate --idea "..."
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Info
+      description: Output of `varchy doctor` and OS version.
+    validations:
+      required: true
