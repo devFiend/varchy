@@ -22,10 +22,12 @@ app = typer.Typer(
 mcp_app = typer.Typer(name="mcp", help="Model Context Protocol (MCP) server commands.")
 config_app = typer.Typer(name="config", help="Manage Varchy settings and secure API credentials.")
 templates_app = typer.Typer(name="templates", help="Manage and inspect architectural project templates.")
+task_app = typer.Typer(name="task", help="Inspect implementation tasks and determine next actionable task in DAG.")
 
 app.add_typer(mcp_app, name="mcp")
 app.add_typer(config_app, name="config")
 app.add_typer(templates_app, name="templates")
+app.add_typer(task_app, name="task")
 
 console = Console()
 
@@ -145,7 +147,9 @@ def generate(
             f"  📁 docs/ (gitignored)\n"
             f"  📄 AGENTS.md\n"
             f"  📄 CLAUDE.md\n"
-            f"  📄 GEMINI.md",
+            f"  📄 GEMINI.md\n"
+            f"  📄 .cursorrules\n"
+            f"  📄 .github/copilot-instructions.md",
             title="🏛️ Varchy Architect",
             border_style="cyan",
         )
@@ -318,6 +322,69 @@ def doctor():
     console.print("✅ [bold]Deterministic Validation Engine:[/bold] Ready")
     console.print("✅ [bold]Multi-Stage DAG Orchestrator:[/bold] Ready")
     console.print("✅ [bold]All core subsystems operational.[/bold]")
+
+
+@task_app.command("list")
+def task_list():
+    """List all development tasks grouped by phase with dependency order."""
+    engine = VarchyEngine()
+    try:
+        blueprint = engine.workspace.load_blueprint()
+    except FileNotFoundError:
+        console.print("[red]No active blueprint found. Run `varchy generate` first.[/red]")
+        raise typer.Exit(code=1)
+
+    table = Table(title="🏛️ Development Tasks & Dependencies")
+    table.add_column("Task ID", style="cyan", width=12)
+    table.add_column("Phase", style="dim", width=10)
+    table.add_column("Title", style="bold white", width=34)
+    table.add_column("Prerequisites", style="yellow", width=18)
+    table.add_column("Requirements Realized", style="green")
+
+    for t in blueprint.planning.tasks:
+        prereqs = ", ".join(t.dependencies) if t.dependencies else "[dim]None (Root)[/dim]"
+        reqs = ", ".join(t.requirement_ids)
+        table.add_row(t.id, t.phase_id, t.title, prereqs, reqs)
+
+    console.print(table)
+
+
+@task_app.command("next")
+def task_next():
+    """Compute and display the next actionable task in the dependency DAG."""
+    engine = VarchyEngine()
+    try:
+        blueprint = engine.workspace.load_blueprint()
+    except FileNotFoundError:
+        console.print("[red]No active blueprint found. Run `varchy generate` first.[/red]")
+        raise typer.Exit(code=1)
+
+    # In Varchy V1, root tasks or tasks with all prerequisites met are actionable
+    tasks = blueprint.planning.tasks
+    if not tasks:
+        console.print("[yellow]No tasks defined in blueprint.[/yellow]")
+        raise typer.Exit(code=0)
+
+    next_task = tasks[0]  # First task in topological order
+    req_map = {r.id: r for r in blueprint.product.requirements}
+    associated_reqs = [req_map[rid] for rid in next_task.requirement_ids if rid in req_map]
+
+    criteria_lines = "\n".join(f"  • {c}" for c in next_task.completion_criteria)
+    req_lines = "\n".join(f"  • [{r.id}] {r.title}: {r.description}" for r in associated_reqs)
+
+    console.print(
+        Panel(
+            f"[bold green]Next Actionable Implementation Task: [{next_task.id}][/bold green]\n"
+            f"[bold]Title:[/bold] {next_task.title}\n"
+            f"[bold]Phase:[/bold] {next_task.phase_id} | [bold]Priority:[/bold] {next_task.priority.value}\n"
+            f"[bold]Description:[/bold] {next_task.description}\n\n"
+            f"[bold cyan]Associated Requirements:[/bold cyan]\n{req_lines or '  • None specified'}\n\n"
+            f"[bold yellow]Completion Criteria:[/bold yellow]\n{criteria_lines or '  • All tests pass'}\n\n"
+            f"[dim]Hand off this prompt to Cursor, Claude, or Codex to implement this task![/dim]",
+            title="🏛️ Varchy Task Handoff",
+            border_style="green",
+        )
+    )
 
 
 @templates_app.callback(invoke_without_command=True)

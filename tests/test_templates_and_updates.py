@@ -106,3 +106,4 @@ def test_doc_compiler_generates_mermaid_diagrams(tmp_path):
     db_content = files["database"].read_text()
     assert "## Schema Definitions" in db_content
     assert "| Column | Data Type | Key | Nullable |" in db_content
+

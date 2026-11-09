@@ -90,3 +90,4 @@ TEMPLATES_REGISTRY: dict[str, ArchitectureTemplate] = {
 def get_template(template_id: str) -> Optional[ArchitectureTemplate]:
     """Retrieve template by id."""
     return TEMPLATES_REGISTRY.get(template_id.lower().strip())
+

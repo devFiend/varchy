@@ -5,7 +5,7 @@
   <a href="https://github.com/varchy-org/varchy"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.15-blue" alt="Python 3.12+"></a>
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-Protocol%20Ready-purple" alt="MCP Ready"></a>
-  <a href="#"><img src="https://img.shields.io/badge/Tests-21%2F21%20Passing-brightgreen" alt="Tests"></a>
+  <a href="#"><img src="https://img.shields.io/badge/Tests-24%2F24%20Passing-brightgreen" alt="Tests"></a>
   <a href="#"><img src="https://img.shields.io/badge/Readiness%20Engine-100%20pt%20Deterministic-emerald" alt="Readiness Engine"></a>
   <a href="#"><img src="https://img.shields.io/badge/BYOK-Zero%20Telemetry-orange" alt="Zero Telemetry"></a>
 </p>
@@ -39,7 +39,7 @@ AI coding assistants (Claude Code, Cursor, Copilot, Codex) write code in seconds
      ↳ Relational schemas & API contracts (ENT-001, API-001)
      ↳ Phased task DAG with zero circular dependencies (TASK-001)
      ↳ 100-Point Deterministic Readiness Gate
-     ↳ Exported AGENTS.md, CLAUDE.md, and GEMINI.md
+     ↳ Exported AGENTS.md, CLAUDE.md, GEMINI.md, .cursorrules, & Copilot rules
      ↳ Your coding agent implements tasks in perfect sequence!
 ```
 
@@ -53,7 +53,7 @@ AI coding assistants (Claude Code, Cursor, Copilot, Codex) write code in seconds
 pip install varchy
 ```
 
-### 2. Browse Architectural Templates
+### 2. Browse Architectural Archetypes
 
 ```bash
 varchy templates
@@ -107,10 +107,26 @@ Total Readiness Score: 100.0 / 100 — READY FOR IMPLEMENTATION
 Critical Blockers: 0 | Warnings: 0 | Recommendations: 0
 ```
 
-### 5. Incremental Updates (Without Starting Over)
+### 5. Step to the Next Actionable Task for Your Agent
 
 ```bash
-varchy update --requirement REQ-001 --title "Enhanced Zero-Knowledge Engine"
+varchy task next
+```
+
+```text
+╭─ 🏛️ Varchy Task Handoff ────────────────────────────────────────────────────────╮
+│ Next Actionable Implementation Task: [TASK-001]                                 │
+│ Title: Repository Scaffolding & Configuration                                   │
+│ Phase: PHASE-1 | Priority: critical                                             │
+│ Description: Initialize package build configuration, virtual environment, and...│
+│                                                                                 │
+│ Associated Requirements:                                                        │
+│   • [REQ-001] Core Domain Workflow Engine                                       │
+│                                                                                 │
+│ Completion Criteria:                                                            │
+│   • Project installs cleanly in virtual environment.                            │
+│   • Linting and formatting tools pass with zero warnings.                       │
+╰─────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 ---
@@ -123,6 +139,8 @@ varchy update --requirement REQ-001 --title "Enhanced Zero-Knowledge Engine"
 | `varchy templates` | List and inspect architectural project archetypes | `varchy templates inspect saas` |
 | `varchy analyze` | Analyze idea, risks, and taxonomy before generation | `varchy analyze --idea "..."` |
 | `varchy generate` | Execute 10-stage architecture DAG pipeline | `varchy generate --idea "..." --template saas` |
+| `varchy task next` | Compute next actionable task in dependency DAG | `varchy task next` |
+| `varchy task list` | Display all development tasks grouped by phase | `varchy task list` |
 | `varchy update` | Incrementally update specific requirement without re-run | `varchy update --requirement REQ-001 ...` |
 | `varchy validate` | Run 100-point deterministic readiness scoring | `varchy validate` |
 | `varchy status` | Show current blueprint health, stages, and metrics | `varchy status` |
@@ -192,8 +210,18 @@ Connect Varchy directly to **Cursor**, **Claude Desktop**, or **Claude Code** as
 }
 ```
 
-Now you can prompt your agent:  
-> *"@varchy validate our architecture blueprint and implement TASK-003."*
+### Available MCP Capabilities:
+- **Tools:** `varchy_initialize_project`, `varchy_generate_blueprint`, `varchy_validate_blueprint`, `varchy_get_context`
+- **Live Resources:**
+  - `varchy://project/overview`
+  - `varchy://project/prd`
+  - `varchy://project/architecture`
+  - `varchy://project/database`
+  - `varchy://project/tasks`
+  - `varchy://project/validation`
+- **Reusable Prompts:**
+  - `review_architecture`: Live readiness assessment & critical blocker checks.
+  - `prepare_task_implementation`: Context pack for implementing a specific `TASK-###`.
 
 ---
 
@@ -214,8 +242,10 @@ my-project/
 │   └── 05-quality/                # Test strategies, unit/integration test cases
 │
 ├── AGENTS.md                      # Universal Coding Agent Guidelines
-├── CLAUDE.md                      # Claude Code optimized instructions
-├── GEMINI.md                      # Gemini CLI optimized instructions
+├── CLAUDE.md                      # Claude Code instructions
+├── GEMINI.md                      # Gemini CLI instructions
+├── .cursorrules                   # Cursor IDE Composer / Agent rules
+├── .github/copilot-instructions.md # GitHub Copilot guidelines
 └── README.md                      # Project architectural summary
 ```
 
@@ -231,28 +261,31 @@ pytest -v
 
 ```text
 tests/test_cli.py::test_cli_version PASSED                               [  4%]
-tests/test_cli.py::test_cli_doctor PASSED                                [  9%]
-tests/test_cli.py::test_cli_init_and_generate_workflow PASSED            [ 14%]
-tests/test_cli_advanced.py::test_cli_analyze_command PASSED              [ 19%]
-tests/test_cli_advanced.py::test_cli_status_uninitialized PASSED         [ 23%]
-tests/test_cli_advanced.py::test_cli_status_initialized_and_generated PASSED [ 28%]
-tests/test_cli_advanced.py::test_cli_config_set_key PASSED               [ 33%]
-tests/test_engine_unified.py::test_engine_init_and_generate PASSED       [ 38%]
-tests/test_pipeline_stages.py::test_all_pipeline_stages_execute_in_sequence PASSED [ 42%]
-tests/test_pipeline_stages.py::test_pipeline_orchestrator_checkpointing_and_resumption PASSED [ 47%]
-tests/test_schemas.py::test_project_metadata_serialization PASSED        [ 52%]
-tests/test_schemas.py::test_requirement_model_validation PASSED          [ 57%]
-tests/test_schemas.py::test_mock_blueprint_schema_conformance PASSED     [ 61%]
-tests/test_templates_and_updates.py::test_templates_registry_contains_archetypes PASSED [ 66%]
-tests/test_templates_and_updates.py::test_cli_templates_list_and_inspect PASSED [ 71%]
-tests/test_templates_and_updates.py::test_interactive_discovery_interview_callback PASSED [ 76%]
-tests/test_templates_and_updates.py::test_cli_update_requirement_incremental PASSED [ 80%]
-tests/test_templates_and_updates.py::test_doc_compiler_generates_mermaid_diagrams PASSED [ 85%]
-tests/test_validation_engine.py::test_complete_blueprint_passes_validation PASSED [ 90%]
+tests/test_cli.py::test_cli_doctor PASSED                                [  8%]
+tests/test_cli.py::test_cli_init_and_generate_workflow PASSED            [ 12%]
+tests/test_cli_advanced.py::test_cli_analyze_command PASSED              [ 16%]
+tests/test_cli_advanced.py::test_cli_status_uninitialized PASSED         [ 20%]
+tests/test_cli_advanced.py::test_cli_status_initialized_and_generated PASSED [ 25%]
+tests/test_cli_advanced.py::test_cli_config_set_key PASSED               [ 29%]
+tests/test_cli_tasks_and_ide.py::test_cursor_and_copilot_files_generated PASSED [ 33%]
+tests/test_cli_tasks_and_ide.py::test_cli_task_list_and_task_next PASSED [ 37%]
+tests/test_engine_unified.py::test_engine_init_and_generate PASSED       [ 41%]
+tests/test_mcp_extended.py::test_mcp_resources_and_prompts PASSED        [ 45%]
+tests/test_pipeline_stages.py::test_all_pipeline_stages_execute_in_sequence PASSED [ 50%]
+tests/test_pipeline_stages.py::test_pipeline_orchestrator_checkpointing_and_resumption PASSED [ 54%]
+tests/test_schemas.py::test_project_metadata_serialization PASSED        [ 58%]
+tests/test_schemas.py::test_requirement_model_validation PASSED          [ 62%]
+tests/test_schemas.py::test_mock_blueprint_schema_conformance PASSED     [ 66%]
+tests/test_templates_and_updates.py::test_templates_registry_contains_archetypes PASSED [ 70%]
+tests/test_templates_and_updates.py::test_cli_templates_list_and_inspect PASSED [ 75%]
+tests/test_templates_and_updates.py::test_interactive_discovery_interview_callback PASSED [ 79%]
+tests/test_templates_and_updates.py::test_cli_update_requirement_incremental PASSED [ 83%]
+tests/test_templates_and_updates.py::test_doc_compiler_generates_mermaid_diagrams PASSED [ 87%]
+tests/test_validation_engine.py::test_complete_blueprint_passes_validation PASSED [ 91%]
 tests/test_validation_engine.py::test_circular_dependency_triggers_critical_blocker PASSED [ 95%]
 tests/test_validation_engine.py::test_unconfirmed_high_risk_assumption_blocks_blueprint PASSED [100%]
 
-============================= 21 passed in 13.02s ==============================
+============================= 24 passed in 12.22s ==============================
 ```
 
 ---
@@ -263,8 +296,9 @@ tests/test_validation_engine.py::test_unconfirmed_high_risk_assumption_blocks_bl
 - [x] **v0.2.0:** Multi-Stage DAG Orchestrator with Checkpoint Resumability, UX (`SCREEN-###`), Architecture, Data & API (`ENT-###`, `API-###`), Planning (`TASK-###`), and QA (`TEST-###`) stages.
 - [x] **v0.3.0:** Live BYOK AI Providers: OpenAI (`gpt-4o`, `o3-mini`), Google Gemini (`2.5/3 Pro`), and Ollama local inference adapter.
 - [x] **v0.4.0:** Interactive discovery interview mode (`varchy generate --mode interactive`) and Mermaid visual architecture & ER diagrams.
-- [x] **v0.5.0:** Architectural templates (`varchy templates`) & Incremental blueprint updates (`varchy update`).
-- [ ] **v1.0.0:** Varchy Build — Coding agent task execution & drift detection.
+- [x] **v0.5.0:** Architectural templates (`varchy templates`), Incremental blueprint updates (`varchy update`), and Task handoff (`varchy task next`, `varchy task list`).
+- [x] **v0.6.0:** Complete MCP Resources (`varchy://project/*`) & Prompts API + Cursor (`.cursorrules`) & GitHub Copilot instruction exporters.
+- [ ] **v1.0.0:** Varchy Build — Coding agent execution orchestration & drift detection.
 
 ---
 
