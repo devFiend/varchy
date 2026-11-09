@@ -2,6 +2,10 @@
 ### *Your idea. Fully architected.*
 
 <p align="center">
+  <img src="assets/varchy_social_preview.jpg" alt="Varchy Hero Banner" width="100%">
+</p>
+
+<p align="center">
   <a href="https://pypi.org/project/varchy/"><img src="https://img.shields.io/pypi/v/varchy.svg?color=blue" alt="PyPI version"></a>
   <a href="https://pypi.org/project/varchy/"><img src="https://img.shields.io/pypi/dm/varchy" alt="PyPI Downloads"></a>
   <a href="https://github.com/devFiend/varchy"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
