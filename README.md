@@ -50,12 +50,50 @@ AI coding assistants (Claude Code, Cursor, Copilot, Codex) write code in seconds
 ### 1. Installation
 
 ```bash
-# macOS / Linux
+# macOS / Linux (Recommended)
 pip3 install varchy
 
 # Windows
 pip install varchy
 ```
+
+#### 💡 Troubleshooting Common Installation Errors (macOS / Linux)
+
+If you see:
+```text
+$ pip install varchy
+zsh: command not found: pip
+```
+
+Modern macOS installations use `pip3` rather than `pip`. Try the following solutions:
+
+1. **Use `pip3` directly:**
+   ```bash
+   pip3 install varchy
+   ```
+
+2. **Use the Python module launcher (most reliable):**
+   ```bash
+   python3 -m pip install varchy
+   ```
+
+3. **If you see `No module named pip`:**
+   ```bash
+   python3 -m ensurepip --upgrade
+   python3 -m pip install --upgrade pip
+   python3 -m pip install varchy
+   ```
+
+4. **Verify your Python installation:**
+   ```bash
+   python3 --version
+   python3 -m pip --version
+   ```
+
+5. *(Optional)* Alias `pip` to `pip3` permanently in your shell:
+   ```bash
+   echo 'alias pip="pip3"' >> ~/.zshrc && source ~/.zshrc
+   ```
 
 ### 2. Browse Architectural Archetypes
 
