@@ -10,7 +10,8 @@ from rich.table import Table
 
 from varchy import __version__
 from varchy.core.engine import VarchyEngine
-from varchy.core.models.common import GenerationMode, ProjectCategory, StageID
+from varchy.core.models.common import GenerationMode, Priority, ProjectCategory, StageID, TestType
+from varchy.core.models.testing import TestCase
 from varchy.core.storage.keystore import KeyStore
 from varchy.providers.manager import ProviderManager
 from varchy.templates.registry import TEMPLATES_REGISTRY, get_template
@@ -199,6 +200,84 @@ def validate():
             console.print(f"  ❌ [{b.category}] {b.message}")
             if b.suggestion:
                 console.print(f"     [dim]Suggestion: {b.suggestion}[/dim]")
+
+
+@app.command()
+def improve(
+    focus: str = typer.Option("all", "--focus", "-f", help="Target area to improve: security, testing, ux, all"),
+):
+    """Analyze the blueprint and automatically improve specifications to maximize the readiness score."""
+    engine = VarchyEngine()
+    if not engine.workspace.is_initialized():
+        console.print("[red]No initialized Varchy project found.[/red]")
+        raise typer.Exit(code=1)
+
+    try:
+        blueprint = engine.workspace.load_blueprint()
+    except FileNotFoundError:
+        console.print("[red]No active blueprint found. Run `varchy generate` first.[/red]")
+        raise typer.Exit(code=1)
+
+    before_report = engine.validator.evaluate(blueprint)
+    focus_clean = focus.lower().strip()
+    improvements_made = []
+
+    # 1. Improve Security
+    if focus_clean in ("security", "all"):
+        sec = blueprint.architecture.security
+        if "OWASP" not in sec.input_validation:
+            sec.input_validation += " Strict sanitization and rejection of non-conforming types complying with OWASP Top 10 guidelines."
+            sec.rate_limiting += " Redis sliding-window token bucket with IP and account-tier throttling."
+            improvements_made.append("Hardened security specification with OWASP input validation & token-bucket rate limiting.")
+
+    # 2. Improve Testing (Edge cases)
+    if focus_clean in ("testing", "all"):
+        req_ids = [r.id for r in blueprint.product.requirements]
+        existing_targets = {tc.target_id for tc in blueprint.testing.test_cases if tc.is_edge_case}
+        for rid in req_ids:
+            if rid not in existing_targets:
+                idx = len(blueprint.testing.test_cases) + 1
+                blueprint.testing.test_cases.append(
+                    TestCase(
+                        id=f"TEST-{idx:03d}",
+                        title=f"Edge Case Verification for [{rid}]",
+                        type=TestType.UNIT,
+                        priority=Priority.HIGH,
+                        target_id=rid,
+                        preconditions=["System boundary test fixture initialized"],
+                        steps=["Inject boundary-exceeding payload", "Assert defensive rejection"],
+                        expected_result="Defensive error raised gracefully without system crash or data leak.",
+                        is_edge_case=True,
+                    )
+                )
+                improvements_made.append(f"Added automated edge-case test specification for {rid}.")
+
+    # 3. Improve UX (Interaction states)
+    if focus_clean in ("ux", "all"):
+        for screen in blueprint.design.screens:
+            existing_states = {s.state_name for s in screen.interaction_states}
+            if "Disabled" not in existing_states:
+                from varchy.core.models.design import InteractionState
+                screen.interaction_states.append(
+                    InteractionState(state_name="Disabled", behavior="Gray out action controls and display tooltip indicating requirements.")
+                )
+                improvements_made.append(f"Added 'Disabled' accessibility state to screen [{screen.id}].")
+
+    # Persist and compile
+    engine.workspace.save_blueprint(blueprint)
+    engine.compiler.compile_all(blueprint)
+    after_report = engine.validator.evaluate(blueprint)
+
+    console.print(
+        Panel(
+            f"[bold green]Blueprint Architecture Improved Successfully![/bold green]\n"
+            f"[bold]Readiness Score:[/bold] {before_report.total_score} ➔ [bold green]{after_report.total_score} / 100[/bold green]\n\n"
+            f"[bold cyan]Improvements Applied:[/bold cyan]\n"
+            + "\n".join(f"  ✓ {imp}" for imp in improvements_made),
+            title="🏛️ Varchy Architecture Optimizer",
+            border_style="green",
+        )
+    )
 
 
 @app.command()

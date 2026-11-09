@@ -70,3 +70,4 @@ class GrokProvider(BaseAIProvider):
             raw_content = data["choices"][0]["message"]["content"]
             parsed_json = json.loads(raw_content)
             return response_model.model_validate(parsed_json)
+
