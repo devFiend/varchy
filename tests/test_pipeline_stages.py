@@ -117,3 +117,4 @@ async def test_pipeline_orchestrator_checkpointing_and_resumption(workspace):
     # Verify that checkpoints were restored
     restored_msgs = [m for m in second_logged if "Restoring cached checkpoint" in m]
     assert len(restored_msgs) == 8
+

@@ -39,3 +39,4 @@ def test_cli_config_set_key():
     result = runner.invoke(app, ["config", "set-key", "openai", "sk-test-key-12345"])
     assert result.exit_code == 0
     assert "Stored" in result.stdout or "Successfully stored" in result.stdout
+

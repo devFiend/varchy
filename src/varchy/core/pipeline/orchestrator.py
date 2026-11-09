@@ -131,3 +131,4 @@ class PipelineOrchestrator:
             self.context.set_data("planning", PlanningSpec.model_validate(data))
         elif stage_id == StageID.QA:
             self.context.set_data("testing", TestingSpec.model_validate(data))
+
