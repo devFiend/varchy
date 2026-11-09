@@ -1,4 +1,4 @@
-"""Documentation Compiler and AI Agent Instruction Exporter."""
+"""Documentation Compiler and AI Agent Instruction Exporter with Mermaid diagram generation."""
 
 from pathlib import Path
 from typing import Any
@@ -8,7 +8,7 @@ from varchy.core.storage.workspace import WorkspaceManager
 
 
 class DocCompiler:
-    """Compiles structured Pydantic blueprints into human- and agent-readable Markdown files."""
+    """Compiles structured Pydantic blueprints into human- and agent-readable Markdown files with Mermaid diagrams."""
 
     def __init__(self, workspace: WorkspaceManager):
         self.workspace = workspace
@@ -22,40 +22,39 @@ class DocCompiler:
         p_dir = self.docs_dir / "01-product"
         p_dir.mkdir(parents=True, exist_ok=True)
         prd_path = p_dir / "prd.md"
-        prd_content = self._render_prd(blueprint)
-        prd_path.write_text(prd_content, encoding="utf-8")
+        prd_path.write_text(self._render_prd(blueprint), encoding="utf-8")
         written_files["prd"] = prd_path
 
         # 2. Design Specs
         d_dir = self.docs_dir / "02-design"
         d_dir.mkdir(parents=True, exist_ok=True)
         screens_path = d_dir / "screens.md"
-        screens_content = self._render_screens(blueprint)
-        screens_path.write_text(screens_content, encoding="utf-8")
+        screens_path.write_text(self._render_screens(blueprint), encoding="utf-8")
         written_files["screens"] = screens_path
 
         # 3. Engineering & Architecture
         e_dir = self.docs_dir / "03-engineering"
         e_dir.mkdir(parents=True, exist_ok=True)
         arch_path = e_dir / "architecture.md"
-        arch_content = self._render_architecture(blueprint)
-        arch_path.write_text(arch_content, encoding="utf-8")
+        arch_path.write_text(self._render_architecture(blueprint), encoding="utf-8")
         written_files["architecture"] = arch_path
+
+        db_path = e_dir / "database.md"
+        db_path.write_text(self._render_database(blueprint), encoding="utf-8")
+        written_files["database"] = db_path
 
         # 4. Development Tasks & Roadmap
         dev_dir = self.docs_dir / "04-development"
         dev_dir.mkdir(parents=True, exist_ok=True)
         tasks_path = dev_dir / "tasks.md"
-        tasks_content = self._render_tasks(blueprint)
-        tasks_path.write_text(tasks_content, encoding="utf-8")
+        tasks_path.write_text(self._render_tasks(blueprint), encoding="utf-8")
         written_files["tasks"] = tasks_path
 
         # 5. Quality & Testing Strategy
         q_dir = self.docs_dir / "05-quality"
         q_dir.mkdir(parents=True, exist_ok=True)
         testing_path = q_dir / "testing.md"
-        testing_content = self._render_testing(blueprint)
-        testing_path.write_text(testing_content, encoding="utf-8")
+        testing_path.write_text(self._render_testing(blueprint), encoding="utf-8")
         written_files["testing"] = testing_path
 
         # 6. Agent Instruction Files
@@ -127,6 +126,15 @@ class DocCompiler:
         lines = [
             f"# Technical Architecture: {bp.metadata.name}",
             "",
+            "## System Component Architecture",
+            "```mermaid",
+            "flowchart TD",
+            "    Client[Client / Interface] --> Gateway[API Gateway & Auth Middleware]",
+            "    Gateway --> CoreService[Core Domain Workflow Engine]",
+            "    CoreService --> Persistence[ACID Relational Persistence]",
+            "    CoreService --> Vault[Hardware-backed Secure Keystore]",
+            "```",
+            "",
             "## Technology Stack & Decisions",
             "| Category | Technology | Rationale |",
             "|---|---|---|",
@@ -149,6 +157,32 @@ class DocCompiler:
         lines.append(f"- **Input Validation:** {sec.input_validation}")
         lines.append(f"- **Rate Limiting:** {sec.rate_limiting}")
         lines.append("")
+        return "\n".join(lines)
+
+    def _render_database(self, bp: Blueprint) -> str:
+        lines = [
+            f"# Database Architecture & Entity Specifications: {bp.metadata.name}",
+            "",
+        ]
+        if bp.data_api.mermaid_er_diagram:
+            lines.append("## Entity Relationship Diagram")
+            lines.append("```mermaid")
+            lines.append(bp.data_api.mermaid_er_diagram)
+            lines.append("```")
+            lines.append("")
+
+        lines.append("## Schema Definitions")
+        for ent in bp.data_api.entities:
+            lines.append(f"### [{ent.id}] `{ent.name}`")
+            lines.append(f"*{ent.description}*")
+            lines.append("")
+            lines.append("| Column | Data Type | Key | Nullable |")
+            lines.append("|---|---|---|---|")
+            for attr in ent.attributes:
+                key_type = "PK" if attr.is_primary_key else ("FK" if attr.foreign_key_target else "-")
+                nullable = "YES" if attr.is_nullable else "NO"
+                lines.append(f"| `{attr.name}` | `{attr.data_type}` | {key_type} | {nullable} |")
+            lines.append("")
         return "\n".join(lines)
 
     def _render_tasks(self, bp: Blueprint) -> str:
@@ -209,9 +243,10 @@ class DocCompiler:
 ## 📖 Documentation Reading Order
 1. [PRD](docs/01-product/prd.md)
 2. [Architecture](docs/03-engineering/architecture.md)
-3. [Design & Screens](docs/02-design/screens.md)
-4. [Tasks](docs/04-development/tasks.md)
-5. [Testing](docs/05-quality/testing.md)
+3. [Database & Entities](docs/03-engineering/database.md)
+4. [Design & Screens](docs/02-design/screens.md)
+5. [Tasks](docs/04-development/tasks.md)
+6. [Testing](docs/05-quality/testing.md)
 """
 
     def _render_claude_md(self, bp: Blueprint) -> str:
@@ -234,4 +269,3 @@ class DocCompiler:
 
 Refer to `docs/` for all architectural specifications and stable requirement IDs.
 """
-

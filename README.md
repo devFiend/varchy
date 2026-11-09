@@ -5,7 +5,7 @@
   <a href="https://github.com/varchy-org/varchy"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.15-blue" alt="Python 3.12+"></a>
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-Protocol%20Ready-purple" alt="MCP Ready"></a>
-  <a href="#"><img src="https://img.shields.io/badge/Tests-16%2F16%20Passing-brightgreen" alt="Tests"></a>
+  <a href="#"><img src="https://img.shields.io/badge/Tests-21%2F21%20Passing-brightgreen" alt="Tests"></a>
   <a href="#"><img src="https://img.shields.io/badge/Readiness%20Engine-100%20pt%20Deterministic-emerald" alt="Readiness Engine"></a>
   <a href="#"><img src="https://img.shields.io/badge/BYOK-Zero%20Telemetry-orange" alt="Zero Telemetry"></a>
 </p>
@@ -33,7 +33,7 @@ AI coding assistants (Claude Code, Cursor, Copilot, Codex) write code in seconds
 
 ```
 ✅ Vibe Coding With Varchy:
-   Command: varchy generate --idea "Uber for dog walkers"
+   Command: varchy generate --idea "Uber for dog walkers" --template saas
      ↳ Structured PRD with stable requirement IDs (REQ-001)
      ↳ Screen specs & interaction states (SCREEN-001)
      ↳ Relational schemas & API contracts (ENT-001, API-001)
@@ -53,19 +53,36 @@ AI coding assistants (Claude Code, Cursor, Copilot, Codex) write code in seconds
 pip install varchy
 ```
 
-### 2. Analyze an Idea (Fast Brief Assessment)
+### 2. Browse Architectural Templates
 
 ```bash
-varchy analyze --idea "A local-first encrypted collaborative markdown workspace"
+varchy templates
 ```
 
-### 3. Generate Complete Architecture Blueprint (Multi-Stage DAG)
+```text
+       🏛️ Varchy Architectural Templates & Archetypes
+┏━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Template ID  ┃ Name                      ┃ Category         ┃ Description                                    ┃
+┡━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ saas         │ Multi-Tenant Web SaaS     │ saas             │ Scalable cloud web platform with billing & RBAC│
+│ local_first  │ Local-First Encrypted App │ dev_tool         │ Zero-knowledge offline-first encrypted storage │
+│ api_backend  │ High-Throughput API       │ api_backend      │ Headless scalable REST & RPC backend service   │
+│ dev_tool     │ Developer CLI             │ dev_tool         │ Ergonomic terminal developer tool & state      │
+│ mobile_app   │ Offline-Ready Mobile App  │ mobile_app       │ Cross-platform iOS/Android app with sync       │
+└──────────────┴───────────────────────────┴──────────────────┴────────────────────────────────────────────────┘
+```
+
+### 3. Generate Complete Architecture Blueprint
 
 ```bash
-varchy generate --idea "A local-first encrypted collaborative markdown workspace"
+# Autonomous generation with archetype
+varchy generate --idea "A local-first encrypted collaborative workspace" --template local_first
+
+# Interactive discovery interview
+varchy generate --idea "A multi-tenant invoice automation tool" --mode interactive
 ```
 
-*Note: Runs with automatic stage checkpointing (`.varchy/checkpoints/`). If interrupted, re-running resumes from the last completed stage. Use `--force` to regenerate all stages.*
+*Runs with automatic stage checkpointing (`.varchy/checkpoints/`). If interrupted, re-running resumes from the last completed stage without burning tokens. Use `--force` to regenerate all stages.*
 
 ### 4. Run the 100-Point Deterministic Readiness Gate
 
@@ -90,10 +107,10 @@ Total Readiness Score: 100.0 / 100 — READY FOR IMPLEMENTATION
 Critical Blockers: 0 | Warnings: 0 | Recommendations: 0
 ```
 
-### 5. Check Project Status & Completed Stages
+### 5. Incremental Updates (Without Starting Over)
 
 ```bash
-varchy status
+varchy update --requirement REQ-001 --title "Enhanced Zero-Knowledge Engine"
 ```
 
 ---
@@ -102,9 +119,11 @@ varchy status
 
 | Command | Description | Example |
 |---|---|---|
-| `varchy init` | Initialize project workspace & metadata | `varchy init --name "MyApp" --category saas` |
-| `varchy analyze` | Analyze idea, risks, and taxonomy before blueprint generation | `varchy analyze --idea "..."` |
-| `varchy generate` | Execute 10-stage architecture DAG pipeline | `varchy generate --idea "..." --provider openai` |
+| `varchy init` | Initialize project workspace & metadata | `varchy init --name "MyApp" --template saas` |
+| `varchy templates` | List and inspect architectural project archetypes | `varchy templates inspect saas` |
+| `varchy analyze` | Analyze idea, risks, and taxonomy before generation | `varchy analyze --idea "..."` |
+| `varchy generate` | Execute 10-stage architecture DAG pipeline | `varchy generate --idea "..." --template saas` |
+| `varchy update` | Incrementally update specific requirement without re-run | `varchy update --requirement REQ-001 ...` |
 | `varchy validate` | Run 100-point deterministic readiness scoring | `varchy validate` |
 | `varchy status` | Show current blueprint health, stages, and metrics | `varchy status` |
 | `varchy export` | Re-compile documentation & agent instruction files | `varchy export` |
@@ -190,7 +209,7 @@ my-project/
 ├── docs/                          # Compiled Engineering Specifications (Git-ignored)
 │   ├── 01-product/                # PRD, requirements, personas
 │   ├── 02-design/                 # Design system, screen specs, IA
-│   ├── 03-engineering/            # Architecture, DB schema, API contracts
+│   ├── 03-engineering/            # Architecture, DB schema (with Mermaid ER diagrams), API contracts
 │   ├── 04-development/            # Phased roadmap & tasks (with dependencies)
 │   └── 05-quality/                # Test strategies, unit/integration test cases
 │
@@ -211,24 +230,29 @@ pytest -v
 ```
 
 ```text
-tests/test_cli.py::test_cli_version PASSED                               [  6%]
-tests/test_cli.py::test_cli_doctor PASSED                                [ 12%]
-tests/test_cli.py::test_cli_init_and_generate_workflow PASSED            [ 18%]
-tests/test_cli_advanced.py::test_cli_analyze_command PASSED              [ 25%]
-tests/test_cli_advanced.py::test_cli_status_uninitialized PASSED         [ 31%]
-tests/test_cli_advanced.py::test_cli_status_initialized_and_generated PASSED [ 37%]
-tests/test_cli_advanced.py::test_cli_config_set_key PASSED               [ 43%]
-tests/test_engine_unified.py::test_engine_init_and_generate PASSED       [ 50%]
-tests/test_pipeline_stages.py::test_all_pipeline_stages_execute_in_sequence PASSED [ 56%]
-tests/test_pipeline_stages.py::test_pipeline_orchestrator_checkpointing_and_resumption PASSED [ 62%]
-tests/test_schemas.py::test_project_metadata_serialization PASSED        [ 68%]
-tests/test_schemas.py::test_requirement_model_validation PASSED          [ 75%]
-tests/test_schemas.py::test_mock_blueprint_schema_conformance PASSED     [ 81%]
-tests/test_validation_engine.py::test_complete_blueprint_passes_validation PASSED [ 87%]
-tests/test_validation_engine.py::test_circular_dependency_triggers_critical_blocker PASSED [ 93%]
+tests/test_cli.py::test_cli_version PASSED                               [  4%]
+tests/test_cli.py::test_cli_doctor PASSED                                [  9%]
+tests/test_cli.py::test_cli_init_and_generate_workflow PASSED            [ 14%]
+tests/test_cli_advanced.py::test_cli_analyze_command PASSED              [ 19%]
+tests/test_cli_advanced.py::test_cli_status_uninitialized PASSED         [ 23%]
+tests/test_cli_advanced.py::test_cli_status_initialized_and_generated PASSED [ 28%]
+tests/test_cli_advanced.py::test_cli_config_set_key PASSED               [ 33%]
+tests/test_engine_unified.py::test_engine_init_and_generate PASSED       [ 38%]
+tests/test_pipeline_stages.py::test_all_pipeline_stages_execute_in_sequence PASSED [ 42%]
+tests/test_pipeline_stages.py::test_pipeline_orchestrator_checkpointing_and_resumption PASSED [ 47%]
+tests/test_schemas.py::test_project_metadata_serialization PASSED        [ 52%]
+tests/test_schemas.py::test_requirement_model_validation PASSED          [ 57%]
+tests/test_schemas.py::test_mock_blueprint_schema_conformance PASSED     [ 61%]
+tests/test_templates_and_updates.py::test_templates_registry_contains_archetypes PASSED [ 66%]
+tests/test_templates_and_updates.py::test_cli_templates_list_and_inspect PASSED [ 71%]
+tests/test_templates_and_updates.py::test_interactive_discovery_interview_callback PASSED [ 76%]
+tests/test_templates_and_updates.py::test_cli_update_requirement_incremental PASSED [ 80%]
+tests/test_templates_and_updates.py::test_doc_compiler_generates_mermaid_diagrams PASSED [ 85%]
+tests/test_validation_engine.py::test_complete_blueprint_passes_validation PASSED [ 90%]
+tests/test_validation_engine.py::test_circular_dependency_triggers_critical_blocker PASSED [ 95%]
 tests/test_validation_engine.py::test_unconfirmed_high_risk_assumption_blocks_blueprint PASSED [100%]
 
-============================== 16 passed in 0.30s ==============================
+============================= 21 passed in 13.02s ==============================
 ```
 
 ---
@@ -238,8 +262,8 @@ tests/test_validation_engine.py::test_unconfirmed_high_risk_assumption_blocks_bl
 - [x] **v0.1.0:** Core Pydantic schemas, Deterministic 100-pt validation engine, Typer CLI, Mock provider, Agent instruction generator (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`).
 - [x] **v0.2.0:** Multi-Stage DAG Orchestrator with Checkpoint Resumability, UX (`SCREEN-###`), Architecture, Data & API (`ENT-###`, `API-###`), Planning (`TASK-###`), and QA (`TEST-###`) stages.
 - [x] **v0.3.0:** Live BYOK AI Providers: OpenAI (`gpt-4o`, `o3-mini`), Google Gemini (`2.5/3 Pro`), and Ollama local inference adapter.
-- [ ] **v0.4.0:** Interactive discovery interview mode (`varchy init --interactive`).
-- [ ] **v0.5.0:** Architectural templates (`varchy templates`) & Incremental blueprint updates (`varchy update`).
+- [x] **v0.4.0:** Interactive discovery interview mode (`varchy generate --mode interactive`) and Mermaid visual architecture & ER diagrams.
+- [x] **v0.5.0:** Architectural templates (`varchy templates`) & Incremental blueprint updates (`varchy update`).
 - [ ] **v1.0.0:** Varchy Build — Coding agent task execution & drift detection.
 
 ---

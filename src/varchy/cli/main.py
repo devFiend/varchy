@@ -12,6 +12,7 @@ from varchy import __version__
 from varchy.core.engine import VarchyEngine
 from varchy.core.models.common import GenerationMode, ProjectCategory, StageID
 from varchy.core.storage.keystore import KeyStore
+from varchy.templates.registry import TEMPLATES_REGISTRY, get_template
 
 app = typer.Typer(
     name="varchy",
@@ -20,8 +21,11 @@ app = typer.Typer(
 )
 mcp_app = typer.Typer(name="mcp", help="Model Context Protocol (MCP) server commands.")
 config_app = typer.Typer(name="config", help="Manage Varchy settings and secure API credentials.")
+templates_app = typer.Typer(name="templates", help="Manage and inspect architectural project templates.")
+
 app.add_typer(mcp_app, name="mcp")
 app.add_typer(config_app, name="config")
+app.add_typer(templates_app, name="templates")
 
 console = Console()
 
@@ -37,13 +41,19 @@ def init(
     name: str = typer.Option("MyProject", "--name", "-n", help="Project name"),
     description: str = typer.Option("A software project", "--desc", "-d", help="Short description"),
     category: ProjectCategory = typer.Option(ProjectCategory.SAAS, "--category", "-c", help="Project category"),
-    mode: GenerationMode = typer.Option(GenerationMode.AUTONOMOUS, "--mode", "-m", help="Interactive or Autonomous"),
+    mode: GenerationMode = typer.Option(GenerationMode.AUTONOMOUS, "--mode", "-m", help="interactive or autonomous"),
+    template: Optional[str] = typer.Option(None, "--template", "-t", help="Template archetype: saas, local_first, api_backend, dev_tool, mobile_app"),
 ):
     """Initialize a new Varchy project workspace."""
     engine = VarchyEngine()
     if engine.workspace.is_initialized():
         console.print("[yellow]Project workspace is already initialized in this directory.[/yellow]")
         raise typer.Exit(code=0)
+
+    if template:
+        arch_tmpl = get_template(template)
+        if arch_tmpl:
+            category = arch_tmpl.category
 
     metadata = engine.initialize_project(
         name=name,
@@ -96,9 +106,15 @@ def generate(
     provider: Optional[str] = typer.Option(None, "--provider", "-p", help="AI provider (openai, gemini, grok, ollama, mock)"),
     mode: GenerationMode = typer.Option(GenerationMode.AUTONOMOUS, "--mode", "-m", help="interactive or autonomous"),
     no_resume: bool = typer.Option(False, "--force", help="Do not restore cached checkpoints; regenerate all stages"),
+    template: Optional[str] = typer.Option(None, "--template", "-t", help="Template: saas, local_first, api_backend, dev_tool, mobile_app"),
 ):
     """Transform a software idea into a complete, validated architectural blueprint."""
     engine = VarchyEngine()
+
+    if template:
+        arch_tmpl = get_template(template)
+        if arch_tmpl:
+            category = arch_tmpl.category
 
     def progress_callback(stage_id: StageID, message: str):
         console.print(f"  [cyan]▸ [{stage_id.value.upper()}][/cyan] {message}")
@@ -181,6 +197,58 @@ def validate():
 
 
 @app.command()
+def update(
+    requirement: Optional[str] = typer.Option(None, "--requirement", "-r", help="Requirement ID to update (e.g. REQ-001)"),
+    title: Optional[str] = typer.Option(None, "--title", help="New title for the requirement"),
+    description: Optional[str] = typer.Option(None, "--desc", help="New description for the requirement"),
+):
+    """Selectively update a requirement in the blueprint without regenerating from scratch."""
+    engine = VarchyEngine()
+    if not engine.workspace.is_initialized():
+        console.print("[red]No initialized Varchy project found.[/red]")
+        raise typer.Exit(code=1)
+
+    try:
+        blueprint = engine.workspace.load_blueprint()
+    except FileNotFoundError:
+        console.print("[red]No active blueprint found. Run `varchy generate` first.[/red]")
+        raise typer.Exit(code=1)
+
+    if not requirement:
+        console.print("[yellow]Please specify a requirement ID using `--requirement REQ-###`.[/yellow]")
+        raise typer.Exit(code=1)
+
+    found = False
+    for req in blueprint.product.requirements:
+        if req.id == requirement:
+            if title:
+                req.title = title
+            if description:
+                req.description = description
+            found = True
+            break
+
+    if not found:
+        console.print(f"[red]Requirement '{requirement}' not found in current blueprint.[/red]")
+        raise typer.Exit(code=1)
+
+    # Persist updated blueprint and re-compile
+    engine.workspace.save_blueprint(blueprint)
+    engine.compiler.compile_all(blueprint)
+    report = engine.validator.evaluate(blueprint)
+
+    console.print(
+        Panel.fit(
+            f"[bold green]Updated requirement [{requirement}] successfully![/bold green]\n"
+            f"Re-compiled documentation and agent instruction files.\n"
+            f"New Readiness Score: [bold]{report.total_score}/100[/bold] (Passed: {report.passed})",
+            title="🏛️ Varchy Incremental Update",
+            border_style="green",
+        )
+    )
+
+
+@app.command()
 def status():
     """Display current project status, completed stages, and blueprint summary."""
     engine = VarchyEngine()
@@ -242,7 +310,6 @@ def doctor():
     except ImportError:
         console.print("⚠️ [bold]Keyring Integration:[/bold] Not installed (falling back to environment variables)")
 
-    # Check configured API keys
     for prov in ["openai", "gemini", "grok"]:
         key = KeyStore.get_api_key(prov)
         status_str = "[green]Configured[/green]" if key else "[dim]Not set (BYOK)[/dim]"
@@ -251,6 +318,56 @@ def doctor():
     console.print("✅ [bold]Deterministic Validation Engine:[/bold] Ready")
     console.print("✅ [bold]Multi-Stage DAG Orchestrator:[/bold] Ready")
     console.print("✅ [bold]All core subsystems operational.[/bold]")
+
+
+@templates_app.callback(invoke_without_command=True)
+def list_templates(ctx: typer.Context):
+    """List available project archetypes and architectural templates."""
+    if ctx.invoked_subcommand is not None:
+        return
+
+    table = Table(title="🏛️ Varchy Architectural Templates & Archetypes")
+    table.add_column("Template ID", style="cyan", width=14)
+    table.add_column("Name", style="bold", width=26)
+    table.add_column("Category", style="green", width=16)
+    table.add_column("Description", style="white")
+
+    for tid, tmpl in TEMPLATES_REGISTRY.items():
+        table.add_row(tid, tmpl.name, tmpl.category.value, tmpl.description)
+
+    console.print(table)
+    console.print("[dim]Use with `varchy init --template <id>` or `varchy templates inspect <id>`[/dim]")
+
+
+@templates_app.command("inspect")
+def inspect_template(template_id: str = typer.Argument(..., help="Template id: saas, local_first, api_backend, dev_tool, mobile_app")):
+    """Inspect the architectural breakdown and recommended stack for a template archetype."""
+    tmpl = get_template(template_id)
+    if not tmpl:
+        console.print(f"[red]Template '{template_id}' not found. Run `varchy templates` to view options.[/red]")
+        raise typer.Exit(code=1)
+
+    console.print(
+        Panel(
+            f"[bold green]{tmpl.name}[/bold green] ([cyan]{tmpl.id}[/cyan])\n"
+            f"[dim]{tmpl.description}[/dim]\n\n"
+            f"[bold]Category:[/bold] {tmpl.category.value}\n"
+            f"[bold]Security Model:[/bold] {tmpl.default_security_model}\n"
+            f"[bold]Persistence:[/bold] {tmpl.default_persistence_model}",
+            title="🏛️ Template Details",
+            border_style="cyan",
+        )
+    )
+
+    table = Table(title="Recommended Technology Stack")
+    table.add_column("Tier", style="cyan", width=18)
+    table.add_column("Technology", style="bold white", width=24)
+    table.add_column("Architectural Rationale", style="dim")
+
+    for item in tmpl.recommended_tech_stack:
+        table.add_row(item.category, item.name, item.justification)
+
+    console.print(table)
 
 
 @config_app.command("set-key")
