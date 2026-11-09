@@ -48,3 +48,4 @@ When submitting code or features, ensure you follow Varchy's core invariants:
 - Every new domain schema must include serialization and roundtrip tests in `tests/test_schemas.py`.
 - Validation rule additions must include passing and failing test cases in `tests/test_validation_engine.py`.
 - All tests must pass cleanly before submitting a PR.
+

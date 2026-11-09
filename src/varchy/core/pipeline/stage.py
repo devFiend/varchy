@@ -24,3 +24,4 @@ class BaseStage(ABC, Generic[TOutput]):
     def validate_output(self, output: TOutput) -> list[str]:
         """Perform stage-specific validation checks. Returns empty list if valid."""
         return []
+

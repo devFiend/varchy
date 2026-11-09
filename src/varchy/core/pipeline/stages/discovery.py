@@ -42,3 +42,4 @@ class DiscoveryStage(BaseStage[ProjectBrief]):
 
         ctx.set_data("brief", brief)
         return brief
+

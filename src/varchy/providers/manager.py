@@ -3,7 +3,10 @@
 from typing import Optional
 from varchy.core.storage.keystore import KeyStore
 from varchy.providers.base import BaseAIProvider
+from varchy.providers.gemini import GeminiProvider
 from varchy.providers.mock import MockAIProvider
+from varchy.providers.ollama import OllamaProvider
+from varchy.providers.openai import OpenAIProvider
 
 
 class ProviderManager:
@@ -11,22 +14,28 @@ class ProviderManager:
 
     def __init__(self, default_provider: str = "openai"):
         self.default_provider = default_provider
-        self._providers: dict[str, BaseAIProvider] = {
-            "mock": MockAIProvider(),
-        }
 
     def get_provider(self, name: Optional[str] = None) -> BaseAIProvider:
-        provider_name = (name or self.default_provider).lower()
+        provider_name = (name or self.default_provider).lower().strip()
 
-        if provider_name in self._providers:
-            return self._providers[provider_name]
+        if provider_name == "mock":
+            return MockAIProvider()
 
-        # For production execution without live API keys, fallback to Mock or raise informative error
-        api_key = KeyStore.get_api_key(provider_name)
-        if not api_key:
-            # Fall back to mock provider if no key configured for offline testing
-            return self._providers["mock"]
+        if provider_name in ("openai", "gpt"):
+            api_key = KeyStore.get_api_key("openai")
+            if api_key:
+                return OpenAIProvider(api_key=api_key)
+            # If no live key is set, fallback to Mock for offline execution
+            return MockAIProvider()
 
-        # Additional live adapters (OpenAI, Gemini, Grok, Ollama) plug in here
-        return self._providers["mock"]
+        if provider_name in ("gemini", "google"):
+            api_key = KeyStore.get_api_key("gemini")
+            if api_key:
+                return GeminiProvider(api_key=api_key)
+            return MockAIProvider()
 
+        if provider_name == "ollama":
+            return OllamaProvider()
+
+        # Fallback to mock provider
+        return MockAIProvider()

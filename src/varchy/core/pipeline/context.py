@@ -31,3 +31,4 @@ class StageContext:
     def log_progress(self, stage_id: StageID, message: str) -> None:
         if self.progress_callback:
             self.progress_callback(stage_id, message)
+

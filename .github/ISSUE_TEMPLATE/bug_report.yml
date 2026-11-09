@@ -27,3 +27,4 @@ body:
       description: Output of `varchy doctor` and OS version.
     validations:
       required: true
+
