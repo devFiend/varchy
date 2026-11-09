@@ -41,3 +41,4 @@ ls -la docs/
 
 echo ""
 echo "✨ Demo completed successfully! Cleaned up at: $DEMO_DIR"
+

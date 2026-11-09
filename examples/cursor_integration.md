@@ -45,3 +45,4 @@ Or add directly to your `~/.cursor/mcp.json`:
 - Call `@varchy_validate_blueprint` to run the 100-point gate.
 - Read live specifications via `varchy://project/prd` and `varchy://project/architecture`.
 - Prepare task prompts via `@prepare_task_implementation`.
+
