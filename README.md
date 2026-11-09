@@ -50,6 +50,10 @@ AI coding assistants (Claude Code, Cursor, Copilot, Codex) write code in seconds
 ### 1. Installation
 
 ```bash
+# macOS / Linux
+pip3 install varchy
+
+# Windows
 pip install varchy
 ```
 
