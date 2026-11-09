@@ -14,7 +14,7 @@ class ProjectMetadata(BaseModel):
     category: ProjectCategory = Field(default=ProjectCategory.SAAS)
     generation_mode: GenerationMode = Field(default=GenerationMode.AUTONOMOUS)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    varchy_version: str = Field(default="0.1.0")
+    varchy_version: str = Field(default="0.1.1")
 
 
 class Assumption(BaseModel):
