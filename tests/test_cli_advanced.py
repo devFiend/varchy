@@ -1,4 +1,4 @@
-"""Tests for advanced CLI commands: analyze, status, config."""
+"""Tests for advanced CLI commands: analyze, status, config, providers, models."""
 
 from typer.testing import CliRunner
 from varchy.cli.main import app
@@ -40,3 +40,20 @@ def test_cli_config_set_key():
     assert result.exit_code == 0
     assert "Stored" in result.stdout or "Successfully stored" in result.stdout
 
+
+def test_cli_providers_command():
+    result = runner.invoke(app, ["providers"])
+    assert result.exit_code == 0
+    assert "Supported AI Providers" in result.stdout
+    assert "OpenAI" in result.stdout
+    assert "Google Gemini" in result.stdout
+    assert "xAI Grok" in result.stdout
+    assert "Ollama" in result.stdout
+
+
+def test_cli_models_command():
+    result = runner.invoke(app, ["models"])
+    assert result.exit_code == 0
+    assert "AI Models per Provider" in result.stdout
+    assert "gpt-4o" in result.stdout
+    assert "gemini-2.5-pro" in result.stdout

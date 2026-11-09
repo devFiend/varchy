@@ -12,6 +12,7 @@ from varchy import __version__
 from varchy.core.engine import VarchyEngine
 from varchy.core.models.common import GenerationMode, ProjectCategory, StageID
 from varchy.core.storage.keystore import KeyStore
+from varchy.providers.manager import ProviderManager
 from varchy.templates.registry import TEMPLATES_REGISTRY, get_template
 
 app = typer.Typer(
@@ -236,7 +237,6 @@ def update(
         console.print(f"[red]Requirement '{requirement}' not found in current blueprint.[/red]")
         raise typer.Exit(code=1)
 
-    # Persist updated blueprint and re-compile
     engine.workspace.save_blueprint(blueprint)
     engine.compiler.compile_all(blueprint)
     report = engine.validator.evaluate(blueprint)
@@ -284,6 +284,44 @@ def status():
         )
     except FileNotFoundError:
         console.print("[yellow]⚠️ No blueprint generated yet. Run `varchy generate`.[/yellow]")
+
+
+@app.command()
+def providers():
+    """List supported AI providers, key requirements, and environment variables."""
+    table = Table(title="🏛️ Supported AI Providers & BYOK Status")
+    table.add_column("Provider ID", style="cyan", width=14)
+    table.add_column("Provider Name", style="bold white", width=24)
+    table.add_column("Status / Config", style="green", width=22)
+    table.add_column("Environment Variable", style="dim")
+
+    for pid, info in ProviderManager.SUPPORTED_PROVIDERS.items():
+        if info["requires_key"]:
+            has_key = KeyStore.get_api_key(pid) is not None
+            status_text = "[bold green]Key Configured[/bold green]" if has_key else "[yellow]Key Required (BYOK)[/yellow]"
+        else:
+            status_text = "[bold green]Ready (Zero Key)[/bold green]"
+
+        table.add_row(pid, info["name"], status_text, info["env_var"])
+
+    console.print(table)
+
+
+@app.command()
+def models(provider: Optional[str] = typer.Option(None, "--provider", "-p", help="Filter by provider: openai, gemini, grok, ollama")):
+    """List available and recommended models across supported providers."""
+    table = Table(title="🏛️ AI Models per Provider")
+    table.add_column("Provider", style="cyan", width=16)
+    table.add_column("Recommended Model", style="bold green", width=22)
+    table.add_column("Available Models", style="white")
+
+    for pid, info in ProviderManager.SUPPORTED_PROVIDERS.items():
+        if provider and provider.lower() != pid:
+            continue
+        models_list = ", ".join(info["models"])
+        table.add_row(info["name"], info["models"][0], models_list)
+
+    console.print(table)
 
 
 @app.command()
@@ -359,13 +397,12 @@ def task_next():
         console.print("[red]No active blueprint found. Run `varchy generate` first.[/red]")
         raise typer.Exit(code=1)
 
-    # In Varchy V1, root tasks or tasks with all prerequisites met are actionable
     tasks = blueprint.planning.tasks
     if not tasks:
         console.print("[yellow]No tasks defined in blueprint.[/yellow]")
         raise typer.Exit(code=0)
 
-    next_task = tasks[0]  # First task in topological order
+    next_task = tasks[0]
     req_map = {r.id: r for r in blueprint.product.requirements}
     associated_reqs = [req_map[rid] for rid in next_task.requirement_ids if rid in req_map]
 

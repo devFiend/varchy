@@ -54,3 +54,4 @@ def test_mcp_resources_and_prompts(tmp_path, monkeypatch):
     # Check prompts/get
     prompt_get = responses[4]["result"]
     assert "Architectural Review Prompt" in prompt_get["description"]
+

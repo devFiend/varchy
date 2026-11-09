@@ -46,3 +46,4 @@ def test_cli_task_list_and_task_next(tmp_path, monkeypatch):
     assert "Next Actionable Implementation Task" in next_res.stdout
     assert "TASK-001" in next_res.stdout
     assert "Completion Criteria:" in next_res.stdout
+
