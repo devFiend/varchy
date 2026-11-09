@@ -107,7 +107,7 @@ def analyze(
 def generate(
     idea: str = typer.Option(..., "--idea", "-i", help="One-sentence description of the project idea"),
     category: ProjectCategory = typer.Option(ProjectCategory.SAAS, "--category", "-c", help="Category"),
-    provider: Optional[str] = typer.Option(None, "--provider", "-p", help="AI provider (openai, gemini, grok, ollama, mock)"),
+    provider: Optional[str] = typer.Option(None, "--provider", "-p", help="AI provider (openai, gemini, grok, groq, ollama, mock)"),
     mode: GenerationMode = typer.Option(GenerationMode.AUTONOMOUS, "--mode", "-m", help="interactive or autonomous"),
     no_resume: bool = typer.Option(False, "--force", help="Do not restore cached checkpoints; regenerate all stages"),
     template: Optional[str] = typer.Option(None, "--template", "-t", help="Template: saas, local_first, api_backend, dev_tool, mobile_app"),
@@ -387,7 +387,7 @@ def providers():
 
 
 @app.command()
-def models(provider: Optional[str] = typer.Option(None, "--provider", "-p", help="Filter by provider: openai, gemini, grok, ollama")):
+def models(provider: Optional[str] = typer.Option(None, "--provider", "-p", help="Filter by provider: openai, gemini, grok, groq, ollama")):
     """List available and recommended models across supported providers."""
     table = Table(title="🏛️ AI Models per Provider")
     table.add_column("Provider", style="cyan", width=16)
@@ -555,7 +555,7 @@ def inspect_template(template_id: str = typer.Argument(..., help="Template id: s
 
 @config_app.command("set-key")
 def config_set_key(
-    provider: str = typer.Argument(..., help="Provider name: openai, gemini, grok"),
+    provider: str = typer.Argument(..., help="Provider name: openai, gemini, grok, groq"),
     key: str = typer.Argument(..., help="API key string"),
 ):
     """Store an AI provider API key securely into OS Keyring."""

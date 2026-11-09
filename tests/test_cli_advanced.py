@@ -48,6 +48,7 @@ def test_cli_providers_command():
     assert "OpenAI" in result.stdout
     assert "Google Gemini" in result.stdout
     assert "xAI Grok" in result.stdout
+    assert "Groq" in result.stdout
     assert "Ollama" in result.stdout
 
 
@@ -57,3 +58,4 @@ def test_cli_models_command():
     assert "AI Models per Provider" in result.stdout
     assert "gpt-4o" in result.stdout
     assert "gemini-2.5-pro" in result.stdout
+    assert "openai/gpt-oss-120b" in result.stdout

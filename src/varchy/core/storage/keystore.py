@@ -44,6 +44,7 @@ class KeyStore:
             "openai": "OPENAI_API_KEY",
             "gemini": "GEMINI_API_KEY",
             "grok": "XAI_API_KEY",
+            "groq": "GROQ_API_KEY",
             "anthropic": "ANTHROPIC_API_KEY",
         }
         std_env = std_env_map.get(provider_clean)

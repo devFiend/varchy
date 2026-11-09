@@ -5,6 +5,7 @@ from varchy.core.storage.keystore import KeyStore
 from varchy.providers.base import BaseAIProvider
 from varchy.providers.gemini import GeminiProvider
 from varchy.providers.grok import GrokProvider
+from varchy.providers.groq import GroqProvider
 from varchy.providers.mock import MockAIProvider
 from varchy.providers.ollama import OllamaProvider
 from varchy.providers.openai import OpenAIProvider
@@ -31,6 +32,12 @@ class ProviderManager:
             "models": ["grok-2-latest", "grok-beta"],
             "requires_key": True,
             "env_var": "XAI_API_KEY",
+        },
+        "groq": {
+            "name": "Groq (LPU Ultra-Fast)",
+            "models": ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b", "llama-3.3-70b-versatile"],
+            "requires_key": True,
+            "env_var": "GROQ_API_KEY",
         },
         "ollama": {
             "name": "Ollama (Local Offline)",
@@ -71,6 +78,12 @@ class ProviderManager:
             api_key = KeyStore.get_api_key("grok")
             if api_key:
                 return GrokProvider(api_key=api_key)
+            return MockAIProvider()
+
+        if provider_name == "groq":
+            api_key = KeyStore.get_api_key("groq")
+            if api_key:
+                return GroqProvider(api_key=api_key)
             return MockAIProvider()
 
         if provider_name == "ollama":

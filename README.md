@@ -7,7 +7,7 @@
   <a href="https://github.com/devFiend/varchy"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14%20%7C%203.15-blue" alt="Python 3.12+"></a>
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-Protocol%20Ready-purple" alt="MCP Ready"></a>
-  <a href="#"><img src="https://img.shields.io/badge/Tests-26%2F26%20Passing-brightgreen" alt="Tests"></a>
+  <a href="#"><img src="https://img.shields.io/badge/Tests-30%2F30%20Passing-brightgreen" alt="Tests"></a>
   <a href="#"><img src="https://img.shields.io/badge/Readiness%20Engine-100%20pt%20Deterministic-emerald" alt="Readiness Engine"></a>
   <a href="#"><img src="https://img.shields.io/badge/BYOK-Zero%20Telemetry-orange" alt="Zero Telemetry"></a>
 </p>
@@ -138,6 +138,7 @@ Varchy supports a **Bring-Your-Own-Key (BYOK)** model. Your API keys are stored 
 | Provider | Model Family | Key Required? | Cost | Best For |
 |---|---|:---:|:---:|---|
 | **Built-in Offline Engine** | Internal Blueprint Engine | **None** | Free | Instant blueprints, offline work, CI/CD, testing |
+| **Groq (LPU Ultra-Fast)** | `openai/gpt-oss-120b`, `openai/gpt-oss-20b`, `llama-3.3-70b-versatile` | Yes (Free Key at console.groq.com) | Free Tier Available | Sub-second architectural generation & LPU speed |
 | **OpenAI** | `gpt-4o`, `gpt-4o-mini`, `o3-mini` | Yes (API Key) | Pay per token | Enterprise systems, strict schema logic |
 | **Google Gemini** | `gemini-2.5-pro`, `gemini-2.5-flash` | Yes (API Key) | Pay per token | Deep architectural reasoning & long context |
 | **xAI Grok** | `grok-2` | Yes (API Key) | Pay per token | Rapid ideation & modern system design |
@@ -152,11 +153,14 @@ varchy generate --idea "A realtime task tracker" --template saas
 
 ---
 
-### Option B: Connecting Live Cloud AI (OpenAI, Gemini, Grok)
+### Option B: Connecting Cloud AI (Groq, OpenAI, Gemini, Grok)
 
 You can save your API keys securely into your OS Keychain:
 
 ```bash
+# Save Groq key (Ultra-fast LPUs, free key at console.groq.com)
+varchy config set-key groq gsk_...
+
 # Save OpenAI key (securely stored in OS Keychain)
 varchy config set-key openai sk-proj-...
 
@@ -169,6 +173,7 @@ varchy config set-key grok xai-...
 
 *Alternatively, you can set standard environment variables:*
 ```bash
+export GROQ_API_KEY="gsk_..."
 export OPENAI_API_KEY="sk-proj-..."
 export GEMINI_API_KEY="AIzaSy..."
 export XAI_API_KEY="xai-..."
@@ -176,6 +181,9 @@ export XAI_API_KEY="xai-..."
 
 Then generate using your preferred provider and model:
 ```bash
+# Using Groq (Blazing fast LPU inference)
+varchy generate --idea "A realtime collaborative kanban board" --provider groq
+
 # Using OpenAI GPT-4o
 varchy generate --idea "A peer-to-peer equipment rental marketplace" --provider openai --model gpt-4o
 
