@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
 authors = [
-    { name = "Varchy Core Team", email = "dev@varchy.org" }
+    { name = "devFiend", email = "ezekielmatthew28@gmail.com" }
 ]
 keywords = [
     "ai",
@@ -56,6 +56,11 @@ dev = [
 
 [project.scripts]
 varchy = "varchy.cli.main:app"
+
+[project.urls]
+Homepage = "https://github.com/devFiend/varchy"
+Repository = "https://github.com/devFiend/varchy"
+Issues = "https://github.com/devFiend/varchy/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/varchy"]
