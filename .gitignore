@@ -54,4 +54,5 @@ docs/
 .varchy/keys/
 .env
 *.key
+*.zip
 
