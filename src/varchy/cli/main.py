@@ -53,6 +53,26 @@ def make_meter(score: float, max_score: float, width: int = 10) -> str:
     return f"[green]{bar}[/green]" if ratio >= 0.8 else f"[yellow]{bar}[/yellow]"
 
 
+def version_callback(value: bool):
+    if value:
+        console.print(f"[bold cyan]Varchy[/bold cyan] version [green]{__version__}[/green]")
+        raise typer.Exit()
+
+
+@app.callback()
+def main_callback(
+    version: Optional[bool] = typer.Option(
+        None,
+        "--version",
+        "-v",
+        help="Display Varchy version and exit.",
+        callback=version_callback,
+        is_eager=True,
+    ),
+):
+    """🏛️ Varchy: Your idea. Fully architected. Open-source AI Software Architect & Development Orchestrator."""
+    pass
+
 
 @app.command()
 def version():
@@ -533,6 +553,14 @@ def doctor():
         key = KeyStore.get_api_key(prov)
         status_str = "[green]Configured[/green]" if key else "[dim]Not set (BYOK)[/dim]"
         console.print(f"  • {prov.title()} Key: {status_str}")
+
+    try:
+        import httpx
+        res = httpx.get("http://127.0.0.1:11434/api/tags", timeout=0.5)
+        ollama_status = "[green]Running (http://localhost:11434)[/green]" if res.status_code == 200 else "[yellow]Reachable[/yellow]"
+    except Exception:
+        ollama_status = "[dim]Not running (offline/local BYOK)[/dim]"
+    console.print(f"  • Ollama Local Instance: {ollama_status}")
 
     console.print("✅ [bold]Deterministic Validation Engine:[/bold] Ready")
     console.print("✅ [bold]Multi-Stage DAG Orchestrator:[/bold] Ready")
