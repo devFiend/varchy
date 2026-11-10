@@ -22,3 +22,4 @@ Use this template archetype when designing scalable REST or GraphQL backend serv
 * **Rate Limiting:** Token-bucket algorithm per IP and authenticated API key.
 * **Idempotency:** `Idempotency-Key` HTTP header required on all POST/PUT mutations.
 * **Versioning:** URL path versioning (`/api/v1/...`).
+

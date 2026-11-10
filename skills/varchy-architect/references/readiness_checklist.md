@@ -46,3 +46,4 @@ Before any implementation code is generated, the architectural blueprint must be
 | **85 – 100** | **PASSED (Production Ready)** | Blueprint is locked. Hand off task `TASK-001` to coding agent for implementation. |
 | **70 – 84** | **PROVISIONAL** | Review warnings. Clarify ambiguous requirements before coding Phase 2. |
 | **0 – 69** | **FAILED (Blocked)** | Architectural gaps detected. Re-run refinement and validation before writing code. |
+

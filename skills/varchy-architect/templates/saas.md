@@ -35,3 +35,4 @@ Use this template archetype when designing web-based SaaS platforms with organiz
 - Subscription (id, organization_id, stripe_subscription_id, status, current_period_end)
 - AuditLog (id, organization_id, actor_id, action, resource, metadata, timestamp)
 ```
+

@@ -89,3 +89,4 @@ This document defines the strict specification requirements for each stage of th
   * Unit test matrix (models, domain services, utility functions).
   * Integration tests (API endpoints with mock DB).
   * End-to-end critical path user journey tests.
+

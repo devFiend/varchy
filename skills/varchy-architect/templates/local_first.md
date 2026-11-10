@@ -20,3 +20,4 @@ Use this template archetype when designing desktop, mobile, or web applications 
 * **Optimistic Local Mutations:** All writes write directly to the local SQLite database instantly with zero UI waiting.
 * **Sync Engine Queue:** Changes are recorded in a local `sync_mutations` outbox.
 * **Conflict Resolution:** Last-Write-Wins (LWW) with logical timestamps or Conflict-Free Replicated Data Types (CRDTs).
+
