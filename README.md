@@ -121,6 +121,46 @@ zsh: command not found: pip
    echo 'alias pip="pip3"' >> ~/.zshrc && source ~/.zshrc
    ```
 
+#### Error on Windows: `'varchy' is not recognized as the name of a cmdlet` or `Script ... is not on PATH`
+If you run `pip install varchy` on Windows PowerShell and see:
+```text
+WARNING: The script varchy.exe is installed in 'C:\Users\<User>\AppData\Roaming\Python\PythonXX\Scripts' which is not on PATH.
+```
+Followed by:
+```powershell
+PS C:\> varchy --version
+varchy : The term 'varchy' is not recognized as the name of a cmdlet, function, script file, or operable program.
+```
+
+**Why this happens:** When pip installs packages in user mode on Windows, it puts executable scripts into your user Python `Scripts` directory (e.g. `%APPDATA%\Python\Python314\Scripts`). Windows does not add this directory to your user `PATH` environment variable by default.
+
+**Solutions (choose one):**
+
+1. **Run directly with Python module runner (Works immediately without modifying PATH):**
+   ```powershell
+   python -m varchy --version
+   python -m varchy doctor
+   python -m varchy generate --idea "My project idea"
+   ```
+
+2. **Add Python Scripts to PATH permanently (Recommended):**
+   Run the following command in PowerShell:
+   ```powershell
+   $userScripts = python -c "import site, os; print(os.path.join(site.USER_BASE, 'Scripts'))"
+   [Environment]::SetEnvironmentVariable(
+       "Path",
+       [Environment]::GetEnvironmentVariable("Path", [EnvironmentVariableTarget]::User) + ";$userScripts",
+       [EnvironmentVariableTarget]::User
+   )
+   ```
+   *Then restart PowerShell*, and `varchy` will be recognized globally!
+
+3. **Quick fix for the current PowerShell window:**
+   ```powershell
+   $env:Path += ";$env:APPDATA\Python\Python314\Scripts"
+   varchy --version
+   ```
+
 #### Upgrading Varchy to the Latest Version
 ```bash
 pip3 install --upgrade varchy

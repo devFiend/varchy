@@ -1,5 +1,7 @@
 """Tests for Typer CLI commands."""
 
+import subprocess
+import sys
 from typer.testing import CliRunner
 from varchy.cli.main import app
 
@@ -10,6 +12,26 @@ def test_cli_version():
     result = runner.invoke(app, ["version"])
     assert result.exit_code == 0
     assert "Varchy" in result.stdout
+
+
+def test_cli_version_flags():
+    result_long = runner.invoke(app, ["--version"])
+    assert result_long.exit_code == 0
+    assert "Varchy" in result_long.stdout
+
+    result_short = runner.invoke(app, ["-v"])
+    assert result_short.exit_code == 0
+    assert "Varchy" in result_short.stdout
+
+
+def test_cli_module_execution():
+    res = subprocess.run(
+        [sys.executable, "-m", "varchy", "--version"],
+        capture_output=True,
+        text=True,
+    )
+    assert res.returncode == 0
+    assert "Varchy" in res.stdout
 
 
 def test_cli_doctor():
