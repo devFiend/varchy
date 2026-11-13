@@ -534,7 +534,7 @@ tests/test_validation_engine.py ...                                      [100%]
 
 ============================= 26 passed in 18.48s ==============================
 ```
-
+[![M8ven Score](https://m8ven.ai/badge/mcp/devfiend-varchy-p6yk08?v=dda62d2893745a5ad0db2e658fbaae8b)](https://m8ven.ai/mcp/devfiend-varchy-p6yk08?s=readme)
 ---
 
 ## 🤝 Contributing
